@@ -1,0 +1,60 @@
+name: Release
+
+# Ausgeloest durch einen Versions-Tag: git tag -a v1.0.0 && git push origin v1.0.0
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Testen, packen, veroeffentlichen
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Lua 5.1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.1
+
+      # Kein Release aus rotem Code.
+      - name: Run test suite
+        run: lua5.1 Tests/run_tests.lua
+
+      # Tag und TOC duerfen nicht auseinanderlaufen -- die TOC-Version ist
+      # das, was der Spieler spaeter im Addon-Menue sieht.
+      - name: Verify tag matches TOC version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          toc="$(sed -n 's/^## Version:[[:space:]]*//p' ProfessionPilot.toc | tr -d '\r')"
+          tag="${GITHUB_REF_NAME#v}"
+          echo "TOC=$toc  Tag=$tag"
+          if [ "$toc" != "$tag" ]; then
+            echo "::error::TOC-Version ($toc) passt nicht zum Tag ($tag)."
+            exit 1
+          fi
+
+      - name: Build addon zip
+        id: build
+        run: |
+          bash Tools/package.sh dist
+          echo "zip=$(ls dist/*.zip)" >> "$GITHUB_OUTPUT"
+          unzip -l dist/*.zip | head -20
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProfessionPilot-zip
+          path: dist/*.zip
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true
