@@ -1,0 +1,20 @@
+# --- AI / assistant artifacts (nicht Teil des Addons) ---
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+.claude/
+.cursor/
+.aider*
+docs/superpowers/
+memory/
+MEMORY.md
+
+# --- Tooling / Logs ---
+.playwright-mcp/
+
+# --- WoW / OS ---
+*.bak
+*.old
+*.tmp
+Thumbs.db
+desktop.ini

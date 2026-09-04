@@ -1,0 +1,49 @@
+## Interface: 30300
+## Title: ProfessionPilot
+## Notes: Guides you through profession leveling. MVP: Engineering 1-450.
+## Notes-deDE: Fuehrt dich durchs Berufeskillen. MVP: Ingenieurskunst 1-450.
+## Author: Daniel
+## Version: 0.9.0
+## SavedVariables: ProfessionPilotDB
+## OptionalDeps: Ace3
+## X-Category: Professions
+## X-AI-Assisted: Yes - developed with AI assistance (Claude by Anthropic) under human direction and review; see README.md
+
+embeds.xml
+
+Locales\enUS.lua
+Locales\deDE.lua
+
+Core\Core.lua
+Core\Database.lua
+Core\Calc.lua
+Core\ProfessionRegistry.lua
+Core\Advisor.lua
+Core\Queue.lua
+Core\Stats.lua
+Core\SmeltData.lua
+
+Modules\SkillTracker.lua
+Modules\SkillStats.lua
+Modules\RecipeTracker.lua
+Modules\MaterialTracker.lua
+Modules\RosterStore.lua
+Modules\PriceSource.lua
+Modules\Crafter.lua
+Modules\AltAdvisor.lua
+Modules\CraftQueue.lua
+
+Professions\Engineering.lua
+Professions\Tailoring.lua
+Professions\Leatherworking.lua
+Professions\Jewelcrafting.lua
+Professions\Alchemy.lua
+Professions\Blacksmithing.lua
+Professions\Enchanting.lua
+Professions\Inscription.lua
+
+UI\MainWindow.lua
+UI\StepList.lua
+UI\MaterialList.lua
+UI\MinimapButton.lua
+UI\Options.lua
