@@ -1,0 +1,34 @@
+name: Tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Lua 5.1 headless suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Das Addon laeuft auf WoW 3.3.5a, dessen Client Lua 5.1 einbettet.
+      # Die Testsuite muss deshalb gegen genau 5.1 laufen, nicht 5.4/LuaJIT.
+      - name: Install Lua 5.1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.1
+          lua5.1 -v
+
+      # Faengt Syntaxfehler in Dateien ab, die die Suite gar nicht laedt
+      # (UI- und Event-Module haben keine headless Testabdeckung).
+      - name: Syntax check (luac -p)
+        run: |
+          find Core Modules UI Professions Locales Tests -name '*.lua' -print0 \
+            | xargs -0 luac5.1 -p
+          echo "Alle Lua-Dateien syntaktisch ok."
+
+      - name: Run test suite
+        run: lua5.1 Tests/run_tests.lua
