@@ -22,20 +22,30 @@ old="$(sed -n 's/^## Version:[[:space:]]*//p' "$ADDON.toc" | tr -d '\r')"
 [ -z "$(git status --porcelain)" ] \
   || { echo "FEHLER: Arbeitsverzeichnis nicht sauber -- erst committen." >&2; exit 1; }
 
-git rev-parse -q --verify "refs/tags/v$new" >/dev/null \
-  && { echo "FEHLER: Tag v$new existiert bereits." >&2; exit 1; } || true
+if git rev-parse -q --verify "refs/tags/v$new" >/dev/null; then
+    echo "FEHLER: Tag v$new existiert bereits." >&2
+    exit 1
+fi
 
 sed -i.bak "s/^## Version:.*/## Version: $new/" "$ADDON.toc" && rm -f "$ADDON.toc.bak"
 
-# Unveroeffentlichte Eintraege bekommen die neue Versionsueberschrift.
+# Die bisher unveroeffentlichten Eintraege werden zur neuen Version;
+# darueber entsteht ein frischer, leerer Unreleased-Abschnitt.
 if [ -f CHANGELOG.md ]; then
-    sed -i.bak "s/^## \[Unreleased\]$/## [$new] - $(date +%Y-%m-%d)/" CHANGELOG.md
-    rm -f CHANGELOG.md.bak
-    sed -i.bak "1,/^# /s/^# \(.*\)$/# \1\n\n## [Unreleased]/" CHANGELOG.md
-    rm -f CHANGELOG.md.bak
+    awk -v ver="$new" -v day="$(date +%Y-%m-%d)" '
+        /^## \[Unreleased\]$/ && !seen {
+            print "## [Unreleased]"
+            print ""
+            print "## [" ver "] - " day
+            seen = 1
+            next
+        }
+        { print }
+    ' CHANGELOG.md > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
+    git add CHANGELOG.md
 fi
 
-git add "$ADDON.toc" CHANGELOG.md 2>/dev/null || git add "$ADDON.toc"
+git add "$ADDON.toc"
 git commit -q -m "Release v$new"
 git tag -a "v$new" -m "ProfessionPilot v$new"
 
