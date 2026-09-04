@@ -1,0 +1,12 @@
+# Alles als Text behandeln, im Repo und im Working Tree immer LF.
+# Verhindert CRLF-Rauschen in Diffs unabhaengig von core.autocrlf.
+* text=auto eol=lf
+
+# Binaerdateien nie anfassen (falls spaeter Icons/Texturen dazukommen).
+*.blp binary
+*.tga binary
+*.png binary
+*.jpg binary
+*.ogg binary
+*.mp3 binary
+*.ttf binary
