@@ -14,6 +14,7 @@ function RecipeTracker:OnEnable()
     self:RegisterEvent("TRADE_SKILL_UPDATE", "ScanTradeSkill")
     self:RegisterEvent("CRAFT_SHOW", "ScanCraft")
     self:RegisterEvent("CRAFT_UPDATE", "ScanCraft")
+    self:RegisterEvent("LEARNED_SPELL_IN_TAB", "OnSpellLearned")
 end
 
 local function professionByName(openName)
@@ -89,6 +90,41 @@ function RecipeTracker:ScanTradeSkill()
         self:VerifyReagents(prof)
     end
     if changed then
+        PP:Recompute()
+    end
+end
+
+-- Ein beim Lehrer oder aus einem Buch gelerntes Rezept taucht in keinem Scan
+-- auf, solange kein Berufsfenster offen ist -- und der Spieler hat dann keinen
+-- Weg, es bekannt zu machen (Issue #1). Der Zauberbuch-Abgleich schliesst die
+-- Luecke: IsSpellKnown (ab 3.0) kennt das Rezept sofort nach dem Lernen.
+-- Wie beim Fenster-Scan wird nur hinzugefuegt, nie entfernt.
+function RecipeTracker:SweepKnownSpells()
+    if type(IsSpellKnown) ~= "function" or not PP.db then return false end
+    local known = PP.db.char.knownRecipes
+    local changed = false
+    for key in pairs(PP.state and PP.state.professions or {}) do
+        local prof = PP:GetProfession(key)
+        if prof then
+            for _, step in ipairs(prof.steps) do
+                local spellId = step.recipeSpellId
+                if spellId and not known[spellId] and IsSpellKnown(spellId) then
+                    known[spellId] = true
+                    changed = true
+                    PP:Debug("RecipeTracker: learned (spellbook)", spellId)
+                end
+            end
+        end
+    end
+    return changed
+end
+
+function RecipeTracker:OnSpellLearned()
+    -- Ein offenes Fenster ist die genauere Quelle (es kennt auch Rezepte
+    -- ausserhalb unserer Schrittdaten); beide Scans sind ohne Fenster No-ops.
+    self:ScanTradeSkill()
+    self:ScanCraft()
+    if self:SweepKnownSpells() then
         PP:Recompute()
     end
 end

@@ -8,6 +8,12 @@ der Git-Tag `vX.Y.Z` muss dazu passen.
 ## [Unreleased]
 
 ### Behoben
+- Neu gelernte Rezepte wurden nicht erkannt, und der Knopf im Hauptfenster
+  war dann deaktiviert (Issue #1) — der Rezept-Cache füllt sich aber nur beim
+  Öffnen des Berufsfensters, es gab also keinen Ausweg. Bei geschlossenem
+  Fenster bietet der Knopf jetzt immer „Beruf öffnen" an, und `RecipeTracker`
+  gleicht bei `LEARNED_SPELL_IN_TAB` das Zauberbuch ab (`IsSpellKnown`),
+  erkennt frisch Gelerntes also auch ohne offenes Fenster.
 - `RecipeTracker`: C stack overflow beim Öffnen eines Berufsfensters.
   `ExpandTradeSkillSubClass` löste `TRADE_SKILL_UPDATE` aus und rief damit
   den eigenen Handler endlos rekursiv auf. Jetzt mit Wiedereintritts-Sperre,

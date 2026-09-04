@@ -91,6 +91,12 @@ function Crafter:GetState()
     if not snap or not snap.profession or not snap.currentIndex then
         return "hidden"
     end
+    -- Bei geschlossenem Fenster immer das Oeffnen anbieten, auch wenn das
+    -- Rezept noch als unbekannt gilt: der Rezept-Cache fuellt sich nur beim
+    -- Oeffnen, ein deaktivierter Knopf waere also eine Sackgasse (Issue #1).
+    if not activeProfessionOpen() then
+        return "closed"
+    end
     if not snap.steps[snap.currentIndex].flags.recipeKnown then
         return "unknown"
     end

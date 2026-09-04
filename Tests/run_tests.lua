@@ -23,6 +23,8 @@ local MANIFEST = {
     "test_parsers",
     "test_snapshot",
     "test_roster",
+    "test_crafter",
+    "test_recipetracker",
     "test_load_all",
 }
 
