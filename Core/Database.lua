@@ -15,7 +15,7 @@ PP.defaults = {
         includeBank = true,
         showAlternatives = true,
         tooltips = true,
-        showPrices = true,            -- effective only with Auctioneer/Auctionator
+        showPrices = true,            -- remembered vendor prices or Auctioneer/Auctionator
         showRoster = true,            -- alt counts in shopping-list tooltips
         ldbText = true,               -- progress text on DataBroker displays
         debug = false,
@@ -31,5 +31,6 @@ PP.defaults = {
     },
     global = {
         roster = {},                  -- ["Name - Realm"] = { counts = { [itemId] = n }, updated = time() }
+        vendorPrices = {},            -- [itemId] = copper per unit, last seen at a vendor
     },
 }

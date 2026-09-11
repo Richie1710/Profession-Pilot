@@ -5,7 +5,10 @@
 --     -- statistical market value, preferred when both are installed,
 --   * Auctionator: Atr_GetAuctionBuyout(itemId) -- most recent scan/buyout.
 -- Both verified against the versions installed alongside this addon.
--- Without a provider every price query returns nil and the UI hides prices.
+-- Vendor prices remembered by Modules/MerchantBuyer.lua (db.global.
+-- vendorPrices, copper per unit) take precedence: a vendor is the real price.
+-- Without a provider and without remembered vendor prices every price query
+-- returns nil and the UI hides prices.
 
 local PP = _G.ProfessionPilot
 local PriceSource = PP:NewModule("PriceSource")
@@ -40,14 +43,33 @@ function PriceSource:OnEnable()
     PP:Debug("PriceSource:", source and source.name or "none")
 end
 
+-- Remembered vendor unit price in copper, or nil (item never seen at a
+-- vendor, or no DB yet before OnInitialize).
+function PP:GetVendorPrice(itemId)
+    local prices = self.db and self.db.global.vendorPrices
+    return prices and prices[itemId] or nil
+end
+
+local function hasVendorPrices()
+    local prices = PP.db and PP.db.global.vendorPrices
+    return prices ~= nil and next(prices) ~= nil
+end
+
+-- Display name of the active price sources: "Auctioneer", "Vendor" or
+-- "Vendor + Auctioneer"; nil when there is nothing to price with.
 function PP:GetPriceSourceName()
     if not source then source = detect() end
-    return source and source.name or nil
+    local vendor = hasVendorPrices() and self.L["PRICE_SRC_VENDOR"] or nil
+    if vendor and source then return vendor .. " + " .. source.name end
+    return vendor or (source and source.name) or nil
 end
 
 -- Unit price in copper, or nil when no provider/no data. pcall guards against
 -- third-party errors so a broken auction addon can never break our render.
 function PP:GetItemPrice(itemId)
+    local vendor = self:GetVendorPrice(itemId)
+    if vendor then return vendor end
+
     if not source then
         source = detect()
         if not source then return nil end

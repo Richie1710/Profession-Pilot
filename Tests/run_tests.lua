@@ -26,6 +26,7 @@ local MANIFEST = {
     "test_roster",
     "test_crafter",
     "test_recipetracker",
+    "test_pricesource",
     "test_load_all",
 }
 

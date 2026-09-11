@@ -135,8 +135,8 @@ L["OPT_SHOW_UPCOMING_DESC"] = "Nimmt Materialien zuk\195\188nftiger Abschnitte i
 L["OPT_INCLUDE_BANK"] = "Bankmaterialien ber\195\188cksichtigen"
 L["OPT_INCLUDE_BANK_DESC"] = "Z\195\164hlt gecachte Bankbest\195\164nde als vorhanden."
 L["OPT_ALTERNATIVES"] = "Alternative Rezepte anzeigen"
-L["OPT_SHOW_PRICES"] = "Auktionspreise anzeigen"
-L["OPT_SHOW_PRICES_DESC"] = "Zeigt die gesch\195\164tzten Kosten fehlender Basismaterialien. Ben\195\182tigt Auctioneer oder Auctionator mit Scandaten."
+L["OPT_SHOW_PRICES"] = "Preise anzeigen"
+L["OPT_SHOW_PRICES_DESC"] = "Zeigt die gesch\195\164tzten Kosten fehlender Basismaterialien: zuerst gemerkte H\195\164ndlerpreise, sonst Scandaten von Auctioneer oder Auctionator."
 L["OPT_TOOLTIPS"] = "Tooltips aktivieren"
 L["OPT_DEBUG"] = "Debug-Modus"
 L["OPT_DEBUG_DESC"] = "Gibt Diagnosemeldungen im Chatfenster aus."
@@ -172,6 +172,9 @@ L["OPT_LDB_TEXT_DESC"] = "Zeigt Skill und aktuellen Schritt in LDB-Anzeigen (Tit
 L["SMELT_FROM"] = "Schmelzbar aus: %dx %s (Bergbau %d)"
 L["SMELT_FROM_COMBO"] = "Geschmolzen aus: %s (Bergbau %d)"
 L["SMELT_YIELD"] = "Ergibt %dx pro Schmelzvorgang"
+
+-- H\195\164ndlerkauf
+L["PRICE_SRC_VENDOR"] = "H\195\164ndler"
 
 -- Slash / Sonstiges
 L["SLASH_HELP"] = "ProfessionPilot-Befehle: /pp show | steps | mats | prof | config | scan | debug | reset"

@@ -135,8 +135,8 @@ L["OPT_SHOW_UPCOMING_DESC"] = "Include materials for future sections in the shop
 L["OPT_INCLUDE_BANK"] = "Include bank materials"
 L["OPT_INCLUDE_BANK_DESC"] = "Count cached bank contents as available."
 L["OPT_ALTERNATIVES"] = "Show alternative recipes"
-L["OPT_SHOW_PRICES"] = "Show auction prices"
-L["OPT_SHOW_PRICES_DESC"] = "Shows the estimated cost of missing base materials. Requires Auctioneer or Auctionator with scan data."
+L["OPT_SHOW_PRICES"] = "Show prices"
+L["OPT_SHOW_PRICES_DESC"] = "Shows the estimated cost of missing base materials: remembered vendor prices first, otherwise Auctioneer or Auctionator scan data."
 L["OPT_TOOLTIPS"] = "Enable tooltips"
 L["OPT_DEBUG"] = "Debug mode"
 L["OPT_DEBUG_DESC"] = "Prints diagnostic messages to the chat frame."
@@ -172,6 +172,9 @@ L["OPT_LDB_TEXT_DESC"] = "Shows skill and current step in LDB display addons (Ti
 L["SMELT_FROM"] = "Smeltable from: %dx %s (Mining %d)"
 L["SMELT_FROM_COMBO"] = "Smelted from: %s (Mining %d)"
 L["SMELT_YIELD"] = "Yields %dx per smelt"
+
+-- Vendor buying
+L["PRICE_SRC_VENDOR"] = "Vendor"
 
 -- Slash / misc
 L["SLASH_HELP"] = "ProfessionPilot commands: /pp show | steps | mats | prof | config | scan | debug | reset"
