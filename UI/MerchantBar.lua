@@ -17,7 +17,9 @@ LibStub("AceEvent-3.0"):Embed(MerchantBar)
 -- haengen unten heraus (Mitte 62 px ueber der Rahmenunterkante), die Leiste
 -- sitzt deshalb darunter.
 local INSET_LEFT, INSET_RIGHT, BAR_TOP = 11, 32, 44
-local BAR_HEIGHT = 30
+-- Zwei Zeilen Summentext (Abschnitt / Gesamt): neben dem 130-px-Knopf
+-- bleiben ~190 px, einzeilig passen groessere Goldbetraege nicht hinein.
+local BAR_HEIGHT = 36
 
 local BACKDROP = {
     bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
