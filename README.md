@@ -299,7 +299,11 @@ Bank-Toggle), Link-Parser.
 - **Händlerkauf** gilt für den aktiven Beruf (Wechsel per `/pp prof`). Bei
   eingeschalteter Bank-Option wird Bankbestand nicht nachgekauft. Freier
   Taschenplatz wird nicht vorab geprüft — lehnt der Server ab (Taschen voll),
-  zeigt die Leiste nach wenigen Sekunden den echten Rest.
+  zeigt die Leiste nach wenigen Sekunden den echten Rest. Käufe über das
+  Händlerfenster oder Auto-Restock-Addons sperren den Knopf ebenfalls, bis sie
+  gezählt sind; Wege, die `BuyMerchantItem` umgehen (Ziehen in die Tasche,
+  ElvUI-Alt-Klick-Stapelkauf), erkennt er erst nach der Taschenzählung — direkt
+  danach also nicht sofort auf „Fehlendes kaufen" klicken.
 
 ## Transparenzhinweis (KI-Unterstützung)
 
