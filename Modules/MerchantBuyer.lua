@@ -13,7 +13,8 @@
 -- Notbremse -- nie nach einer kurzen festen Zeit, die bei Lag einen
 -- Doppelkauf erlauben wuerde. Kaeufe am Knopf vorbei (Blizzard-Fenster,
 -- Auto-Restock-Addons) landen per BuyMerchantItem-Hook ebenfalls in
--- `pending`.
+-- `pending`; Wege, die BuyMerchantItem umgehen (lokale Kopien in anderen
+-- Addons, Ziehen in die Tasche), sind nicht erfassbar.
 
 local PP = _G.ProfessionPilot
 local L = PP.L
@@ -37,6 +38,7 @@ local open = false
 local timeoutTimer
 local ownBuy = false   -- true, solange Buy() selbst BuyMerchantItem aufruft
 local hooked = false
+local lastBuyError     -- GetTime() der letzten Kaufablehnung
 
 local function buildInterest()
     for _, prof in pairs(PP:GetProfessions()) do
@@ -146,10 +148,14 @@ function MerchantBuyer:AddPending(itemId, amount)
     pending[itemId] = (pending[itemId] or (c and c.bags or 0)) + amount
 end
 
--- Sperre scharf machen bzw. fuer einen weiteren Kauf verlaengern.
+-- Sperre scharf machen bzw. fuer einen weiteren Kauf verlaengern. Kam die
+-- Ablehnung schon waehrend BuyMerchantItem (gleicher Frame, also vor der
+-- Sperre), gilt direkt die Gnadenfrist.
 function MerchantBuyer:ArmLock()
     if timeoutTimer then self:CancelTimer(timeoutTimer, true) end
-    timeoutTimer = self:ScheduleTimer("OnBuyTimeout", BUY_TIMEOUT)
+    local delay = (lastBuyError and lastBuyError == GetTime())
+        and ERROR_GRACE or BUY_TIMEOUT
+    timeoutTimer = self:ScheduleTimer("OnBuyTimeout", delay)
     self:RegisterMessage("PP_SNAPSHOT", "OnSnapshot")
     self:RegisterEvent("UI_ERROR_MESSAGE")
     self:SendMessage("PP_MERCHANT_STATE")
@@ -198,7 +204,10 @@ function MerchantBuyer:ClearPending()
         timeoutTimer = nil
     end
     self:UnregisterMessage("PP_SNAPSHOT")
-    self:UnregisterEvent("UI_ERROR_MESSAGE")
+    -- Bei offenem Haendler bleibt das Fehler-Event aktiv (synchrone
+    -- Ablehnungen kommen vor der Sperre); ArmLock kann es auch ohne
+    -- MERCHANT_SHOW registriert haben (Auto-Restock vor unserem SHOW).
+    if not open then self:UnregisterEvent("UI_ERROR_MESSAGE") end
 end
 
 -- Jede Neuberechnung nach BAG_UPDATE: ist alles Gekaufte gezaehlt, faellt
@@ -214,9 +223,12 @@ end
 
 -- Lehnt der Server einen Kauf ab (Taschen voll, Gold, ausverkauft ...),
 -- kommt der Rest nie an: kurz auf die Taschenzaehlung warten, dann die
--- Sperre loesen, statt die Notbremse abzuwarten.
+-- Sperre loesen, statt die Notbremse abzuwarten. Der Zeitpunkt wird auch
+-- ohne Sperre gemerkt, fuer den Fall der synchronen Ablehnung (ArmLock).
 function MerchantBuyer:UI_ERROR_MESSAGE(_, msg)
-    if not next(pending) or not isBuyError(msg) then return end
+    if not isBuyError(msg) then return end
+    lastBuyError = GetTime()
+    if not next(pending) then return end
     if timeoutTimer then self:CancelTimer(timeoutTimer, true) end
     timeoutTimer = self:ScheduleTimer("OnBuyTimeout", ERROR_GRACE)
 end
@@ -235,6 +247,7 @@ function MerchantBuyer:MERCHANT_SHOW()
     open = true
     self:RegisterEvent("MERCHANT_UPDATE")
     self:RegisterEvent("PLAYER_MONEY")
+    self:RegisterEvent("UI_ERROR_MESSAGE")
     self:ScanOffers()
     self:SendMessage("PP_MERCHANT_STATE")
 end

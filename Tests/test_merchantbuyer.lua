@@ -20,6 +20,7 @@ local saved = {
     GetMerchantItemMaxStack = _G.GetMerchantItemMaxStack,
     BuyMerchantItem = _G.BuyMerchantItem,
     GetMoney = _G.GetMoney,
+    GetTime = _G.GetTime,
     MerchantFrame = _G.MerchantFrame,
     hooksecurefunc = _G.hooksecurefunc,
     ERR_INV_FULL = _G.ERR_INV_FULL,
@@ -29,7 +30,7 @@ local THREAD, CLOTH, DYE, OTHER = 14341, 14047, 4342, 999999
 local PROF = { steps = { { materials = {
     { itemId = THREAD }, { itemId = CLOTH }, { itemId = DYE } } } } }
 
-local module
+local module, MB
 function PP:NewModule() module = {} return module end
 PP.GetProfessions = function() return { tailoring = PROF } end
 PP.GetItemName = function(_, id) return "item" .. id end
@@ -48,6 +49,8 @@ local MERCHANT = {
 }
 _G.MerchantFrame = nil
 _G.ERR_INV_FULL = "Inventory is full."
+local now = 100
+_G.GetTime = function() return now end
 _G.GetMerchantNumItems = function() return #MERCHANT end
 _G.GetMerchantItemLink = function(i)
     return "|cffffffff|Hitem:" .. MERCHANT[i].id .. ":0:0:0:0:0:0:0|h[x]|h|r"
@@ -58,7 +61,16 @@ _G.GetMerchantItemInfo = function(i)
 end
 _G.GetMerchantItemMaxStack = function(i) return MERCHANT[i].stack end
 local bought = {}
-_G.BuyMerchantItem = function(i, n) bought[#bought + 1] = i .. "x" .. (n or 1) end
+-- failNext: der Client lehnt den naechsten Kauf synchron ab (Fehlermeldung
+-- noch waehrend des BuyMerchantItem-Aufrufs).
+local failNext = false
+_G.BuyMerchantItem = function(i, n)
+    bought[#bought + 1] = i .. "x" .. (n or 1)
+    if failNext then
+        failNext = false
+        MB:UI_ERROR_MESSAGE("UI_ERROR_MESSAGE", "Inventory is full.")
+    end
+end
 _G.GetMoney = function() return 10000000 end
 -- Wie im Client: der Hook laeuft nach der Originalfunktion.
 _G.hooksecurefunc = function(name, fn)
@@ -68,7 +80,7 @@ end
 
 local chunk = assert(loadfile(root .. "/Modules/MerchantBuyer.lua"))
 chunk()
-local MB = module
+MB = module
 T.ok(MB ~= nil and MB.Buy ~= nil, "MerchantBuyer laedt headless")
 
 -- AceEvent/AceTimer-Ersatz: zeichnet nur auf (Timer als "Methode@Sekunden").
@@ -103,6 +115,7 @@ T.eq(#MB:GetPlan("total").items, 0, "zu: leerer Plan")
 MB:MERCHANT_SHOW()
 T.eq(MB:IsOpen(), true, "show: offen")
 T.ok(events.MERCHANT_UPDATE and events.PLAYER_MONEY, "show: Update-Events aktiv")
+T.ok(events.UI_ERROR_MESSAGE, "show: lauscht auf Kaufablehnungen")
 T.eq(sent[#sent], "PP_MERCHANT_STATE", "show: Zustand gesendet")
 
 -- Preis-Cache: nur Berufsmaterialien, Stueckpreis, keine Sonderwaehrung.
@@ -154,7 +167,7 @@ PP.counts[DYE] = { bags = 10, bank = 0 }
 MB:OnSnapshot()
 T.eq(MB:IsBusy(), false, "angekommen: Sperre frei")
 T.eq(messages.PP_SNAPSHOT, nil, "angekommen: Snapshot-Abo beendet")
-T.eq(events.UI_ERROR_MESSAGE, nil, "angekommen: Fehler-Event abgemeldet")
+T.ok(events.UI_ERROR_MESSAGE, "angekommen: Fehler-Event bleibt bei offenem Haendler")
 
 -- Notbremse: weder Ankunft noch Fehlermeldung -> Sperre loest sich.
 PP.snapshot.tree = { { itemId = THREAD, missing = 10 } }
@@ -175,7 +188,21 @@ T.eq(timers[#timers], "OnBuyTimeout@1", "fehler: Taschen voll -> 1 s Gnadenfrist
 T.eq(MB:IsBusy(), true, "fehler: bis zur Gnadenfrist gesperrt")
 MB:OnBuyTimeout()
 T.eq(MB:IsBusy(), false, "fehler: danach frei")
-T.eq(events.UI_ERROR_MESSAGE, nil, "fehler: Event wieder abgemeldet")
+
+-- Synchrone Ablehnung: der Client meldet den Fehler schon waehrend
+-- BuyMerchantItem, also bevor die Sperre steht -> trotzdem nur die
+-- Gnadenfrist. Eine Ablehnung aus einem frueheren Frame zaehlt nicht.
+now = 200
+failNext = true
+MB:Buy("current")
+T.eq(timers[#timers], "OnBuyTimeout@1",
+    "sync-fehler: Ablehnung waehrend des Kaufs -> Gnadenfrist")
+MB:OnBuyTimeout()
+now = 201
+MB:Buy("current")
+T.eq(timers[#timers], "OnBuyTimeout@20",
+    "sync-fehler: alte Ablehnung verkuerzt keine neue Sperre")
+MB:OnBuyTimeout()
 
 -- Kaeufe am Knopf vorbei (Blizzard-Haendlerfenster, Auto-Restock-Addons)
 -- sperren ebenfalls und werden vom Plan abgezogen.
@@ -209,6 +236,7 @@ MB:MERCHANT_CLOSED()
 T.eq(MB:IsOpen(), false, "closed: zu")
 T.eq(MB:IsBusy(), false, "closed: Sperre weg")
 T.eq(events.MERCHANT_UPDATE, nil, "closed: Update-Event abgemeldet")
+T.eq(events.UI_ERROR_MESSAGE, nil, "closed: Fehler-Event abgemeldet")
 T.eq(#MB:GetPlan("current").items, 0, "closed: keine Angebote mehr")
 local n = #sent
 MB:MERCHANT_CLOSED()
@@ -225,6 +253,7 @@ _G.GetMerchantItemInfo = saved.GetMerchantItemInfo
 _G.GetMerchantItemMaxStack = saved.GetMerchantItemMaxStack
 _G.BuyMerchantItem = saved.BuyMerchantItem
 _G.GetMoney = saved.GetMoney
+_G.GetTime = saved.GetTime
 _G.MerchantFrame = saved.MerchantFrame
 _G.hooksecurefunc = saved.hooksecurefunc
 _G.ERR_INV_FULL = saved.ERR_INV_FULL
