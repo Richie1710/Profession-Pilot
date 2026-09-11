@@ -20,6 +20,7 @@ Core\Calc.lua
 Core\ProfessionRegistry.lua
 Core\Advisor.lua
 Core\Queue.lua
+Core\Shopping.lua
 Core\Stats.lua
 Core\SmeltData.lua
 
