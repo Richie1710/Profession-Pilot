@@ -21,6 +21,8 @@ local saved = {
     BuyMerchantItem = _G.BuyMerchantItem,
     GetMoney = _G.GetMoney,
     MerchantFrame = _G.MerchantFrame,
+    hooksecurefunc = _G.hooksecurefunc,
+    ERR_INV_FULL = _G.ERR_INV_FULL,
 }
 
 local THREAD, CLOTH, DYE, OTHER = 14341, 14047, 4342, 999999
@@ -45,6 +47,7 @@ local MERCHANT = {
     { id = CLOTH,  price = 0,   qty = 1, avail = -1, stack = 20, ext = 1 },
 }
 _G.MerchantFrame = nil
+_G.ERR_INV_FULL = "Inventory is full."
 _G.GetMerchantNumItems = function() return #MERCHANT end
 _G.GetMerchantItemLink = function(i)
     return "|cffffffff|Hitem:" .. MERCHANT[i].id .. ":0:0:0:0:0:0:0|h[x]|h|r"
@@ -57,20 +60,28 @@ _G.GetMerchantItemMaxStack = function(i) return MERCHANT[i].stack end
 local bought = {}
 _G.BuyMerchantItem = function(i, n) bought[#bought + 1] = i .. "x" .. (n or 1) end
 _G.GetMoney = function() return 10000000 end
+-- Wie im Client: der Hook laeuft nach der Originalfunktion.
+_G.hooksecurefunc = function(name, fn)
+    local orig = _G[name]
+    _G[name] = function(...) orig(...) fn(...) end
+end
 
 local chunk = assert(loadfile(root .. "/Modules/MerchantBuyer.lua"))
 chunk()
 local MB = module
 T.ok(MB ~= nil and MB.Buy ~= nil, "MerchantBuyer laedt headless")
 
--- AceEvent/AceTimer-Ersatz: zeichnet nur auf.
+-- AceEvent/AceTimer-Ersatz: zeichnet nur auf (Timer als "Methode@Sekunden").
 local events, messages, sent, timers = {}, {}, {}, {}
 function MB:RegisterEvent(e) events[e] = true end
 function MB:UnregisterEvent(e) events[e] = nil end
 function MB:RegisterMessage(m, h) messages[m] = h or true end
 function MB:UnregisterMessage(m) messages[m] = nil end
 function MB:SendMessage(m) sent[#sent + 1] = m end
-function MB:ScheduleTimer(method) timers[#timers + 1] = method return #timers end
+function MB:ScheduleTimer(method, delay)
+    timers[#timers + 1] = method .. "@" .. tostring(delay)
+    return #timers
+end
 function MB:CancelTimer() end
 
 MB:OnEnable()
@@ -116,7 +127,8 @@ T.eq(table.concat(bought, " "), "1x20 1x20 1x5 3x1 3x1",
     "buy: Stapel fuer Faden, Buendel einzeln")
 T.eq(MB:IsBusy(), true, "buy: Sperre aktiv")
 T.ok(messages.PP_SNAPSHOT, "buy: wartet auf Snapshot")
-T.eq(timers[#timers], "OnBuyTimeout", "buy: Timeout geplant")
+T.ok(events.UI_ERROR_MESSAGE, "buy: lauscht auf Serverablehnungen")
+T.eq(timers[#timers], "OnBuyTimeout@20", "buy: Notbremse nach 20 s")
 T.eq(printed[1], "BUY_DONE", "buy: Zusammenfassung im Chat")
 T.eq(printed[2], "BUY_NOTE_SKIP_CURRENCY", "buy: Sonderwaehrungs-Hinweis")
 
@@ -134,19 +146,54 @@ PP.counts[THREAD] = { bags = 30, bank = 0 }
 MB:OnSnapshot()
 T.eq(MB:IsBusy(), true, "teilweise angekommen: noch gesperrt")
 
--- Alles angekommen (Ziel: 5 + 45 Faden, 0 + 10 Farbe): Sperre frei.
+-- Alles angekommen (Ziel: 5 + 45 Faden, 0 + 10 Farbe): Sperre frei. Das
+-- belegt nebenbei, dass der BuyMerchantItem-Hook eigene Kaeufe nicht ein
+-- zweites Mal zaehlt (sonst laege das Ziel bei 95).
 PP.counts[THREAD] = { bags = 50, bank = 0 }
 PP.counts[DYE] = { bags = 10, bank = 0 }
 MB:OnSnapshot()
 T.eq(MB:IsBusy(), false, "angekommen: Sperre frei")
 T.eq(messages.PP_SNAPSHOT, nil, "angekommen: Snapshot-Abo beendet")
+T.eq(events.UI_ERROR_MESSAGE, nil, "angekommen: Fehler-Event abgemeldet")
 
--- Timeout: Kauf kam nie an (z. B. Taschen voll) -> Sperre loest sich.
+-- Notbremse: weder Ankunft noch Fehlermeldung -> Sperre loest sich.
 PP.snapshot.tree = { { itemId = THREAD, missing = 10 } }
 MB:Buy("current")
 T.eq(MB:IsBusy(), true, "timeout: gesperrt nach Kauf")
 MB:OnBuyTimeout()
 T.eq(MB:IsBusy(), false, "timeout: Sperre frei")
+
+-- Serverablehnung (Taschen voll): kurze Gnadenfrist fuer die Taschen-
+-- zaehlung statt der Notbremse; fremde Fehlermeldungen aendern nichts.
+MB:Buy("current")
+local nTimers = #timers
+MB:UI_ERROR_MESSAGE("UI_ERROR_MESSAGE", "Not enough rage")
+T.eq(#timers, nTimers, "fehler: fremde Meldung ignoriert")
+T.eq(MB:IsBusy(), true, "fehler: fremde Meldung laesst die Sperre stehen")
+MB:UI_ERROR_MESSAGE("UI_ERROR_MESSAGE", "Inventory is full.")
+T.eq(timers[#timers], "OnBuyTimeout@1", "fehler: Taschen voll -> 1 s Gnadenfrist")
+T.eq(MB:IsBusy(), true, "fehler: bis zur Gnadenfrist gesperrt")
+MB:OnBuyTimeout()
+T.eq(MB:IsBusy(), false, "fehler: danach frei")
+T.eq(events.UI_ERROR_MESSAGE, nil, "fehler: Event wieder abgemeldet")
+
+-- Kaeufe am Knopf vorbei (Blizzard-Haendlerfenster, Auto-Restock-Addons)
+-- sperren ebenfalls und werden vom Plan abgezogen.
+PP.snapshot.tree = { { itemId = THREAD, missing = 10 } }
+_G.BuyMerchantItem(1, 4)
+T.eq(MB:IsBusy(), true, "extern: Handkauf sperrt")
+local p = MB:GetPlan("current")
+T.eq(p.items[1] and p.items[1].count, 6, "extern: 4 unterwegs -> nur 6 fehlen")
+PP.counts[THREAD] = { bags = 54, bank = 0 }
+MB:OnSnapshot()
+T.eq(MB:IsBusy(), false, "extern: nach Ankunft frei")
+_G.BuyMerchantItem(3, 1)
+T.eq(MB:IsBusy(), true, "extern: Buendelkauf sperrt")
+PP.counts[DYE] = { bags = 15, bank = 0 }
+MB:OnSnapshot()
+T.eq(MB:IsBusy(), false, "extern: ein Buendel (5) angekommen -> frei")
+_G.BuyMerchantItem(2, 1)
+T.eq(MB:IsBusy(), false, "extern: fremdes Item sperrt nicht")
 
 -- Nichts zu kaufen: Hinweis statt Kauf.
 before = #bought
@@ -179,3 +226,5 @@ _G.GetMerchantItemMaxStack = saved.GetMerchantItemMaxStack
 _G.BuyMerchantItem = saved.BuyMerchantItem
 _G.GetMoney = saved.GetMoney
 _G.MerchantFrame = saved.MerchantFrame
+_G.hooksecurefunc = saved.hooksecurefunc
+_G.ERR_INV_FULL = saved.ERR_INV_FULL
