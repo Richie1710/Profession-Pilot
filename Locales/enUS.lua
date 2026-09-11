@@ -175,6 +175,13 @@ L["SMELT_YIELD"] = "Yields %dx per smelt"
 
 -- Vendor buying
 L["PRICE_SRC_VENDOR"] = "Vendor"
+L["BUY_DONE"] = "Buying: %s (%s)"
+L["BUY_NOTHING"] = "This vendor sells nothing you are missing for that."
+L["BUY_NOTE_CAPPED_STOCK"] = "%s: vendor only has %d in stock"
+L["BUY_NOTE_CAPPED_MONEY"] = "%s: gold only covers %d"
+L["BUY_NOTE_SKIP_STOCK"] = "%s: sold out"
+L["BUY_NOTE_SKIP_MONEY"] = "%s: not enough gold"
+L["BUY_NOTE_SKIP_CURRENCY"] = "%s: costs a special currency - skipped"
 
 -- Slash / misc
 L["SLASH_HELP"] = "ProfessionPilot commands: /pp show | steps | mats | prof | config | scan | debug | reset"

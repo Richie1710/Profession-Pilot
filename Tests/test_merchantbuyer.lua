@@ -1,0 +1,181 @@
+-- MerchantBuyer: Haendlersortiment lesen, Preise merken, fehlende Menge
+-- kaufen, Sperre gegen Doppelkauf. Das Modul wird headless mit gestubbter
+-- Haendler-API geladen (Stub-Muster aus test_recipetracker.lua).
+
+local root = ((arg and arg[0] or ""):match("^(.*)[/\\]") or ".") .. "/.."
+local PP = _G.ProfessionPilot
+
+-- Umgebung sichern: alle Tests teilen sich einen Lua-Zustand.
+local saved = {
+    NewModule = rawget(PP, "NewModule"),
+    GetProfessions = rawget(PP, "GetProfessions"),
+    GetItemName = rawget(PP, "GetItemName"),
+    Print = rawget(PP, "Print"),
+    db = rawget(PP, "db"),
+    snapshot = rawget(PP, "snapshot"),
+    counts = rawget(PP, "counts"),
+    GetMerchantNumItems = _G.GetMerchantNumItems,
+    GetMerchantItemLink = _G.GetMerchantItemLink,
+    GetMerchantItemInfo = _G.GetMerchantItemInfo,
+    GetMerchantItemMaxStack = _G.GetMerchantItemMaxStack,
+    BuyMerchantItem = _G.BuyMerchantItem,
+    GetMoney = _G.GetMoney,
+    MerchantFrame = _G.MerchantFrame,
+}
+
+local THREAD, CLOTH, DYE, OTHER = 14341, 14047, 4342, 999999
+local PROF = { steps = { { materials = {
+    { itemId = THREAD }, { itemId = CLOTH }, { itemId = DYE } } } } }
+
+local module
+function PP:NewModule() module = {} return module end
+PP.GetProfessions = function() return { tailoring = PROF } end
+PP.GetItemName = function(_, id) return "item" .. id end
+local printed = {}
+PP.Print = function(_, msg) printed[#printed + 1] = msg end
+PP.db = { global = { vendorPrices = {} }, profile = { debug = false } }
+PP.counts = { [THREAD] = { bags = 5, bank = 0 } }
+
+-- Haendler: [1] Runenfaden (Einzelware, 5s), [2] fremdes Item,
+-- [3] Farbe im 5er-Buendel, [4] Stoff nur gegen Sonderwaehrung.
+local MERCHANT = {
+    { id = THREAD, price = 500, qty = 1, avail = -1, stack = 20 },
+    { id = OTHER,  price = 100, qty = 1, avail = -1, stack = 20 },
+    { id = DYE,    price = 250, qty = 5, avail = -1, stack = 1 },
+    { id = CLOTH,  price = 0,   qty = 1, avail = -1, stack = 20, ext = 1 },
+}
+_G.MerchantFrame = nil
+_G.GetMerchantNumItems = function() return #MERCHANT end
+_G.GetMerchantItemLink = function(i)
+    return "|cffffffff|Hitem:" .. MERCHANT[i].id .. ":0:0:0:0:0:0:0|h[x]|h|r"
+end
+_G.GetMerchantItemInfo = function(i)
+    local e = MERCHANT[i]
+    return "x", "tex", e.price, e.qty, e.avail, 1, e.ext
+end
+_G.GetMerchantItemMaxStack = function(i) return MERCHANT[i].stack end
+local bought = {}
+_G.BuyMerchantItem = function(i, n) bought[#bought + 1] = i .. "x" .. (n or 1) end
+_G.GetMoney = function() return 10000000 end
+
+local chunk = assert(loadfile(root .. "/Modules/MerchantBuyer.lua"))
+chunk()
+local MB = module
+T.ok(MB ~= nil and MB.Buy ~= nil, "MerchantBuyer laedt headless")
+
+-- AceEvent/AceTimer-Ersatz: zeichnet nur auf.
+local events, messages, sent, timers = {}, {}, {}, {}
+function MB:RegisterEvent(e) events[e] = true end
+function MB:UnregisterEvent(e) events[e] = nil end
+function MB:RegisterMessage(m, h) messages[m] = h or true end
+function MB:UnregisterMessage(m) messages[m] = nil end
+function MB:SendMessage(m) sent[#sent + 1] = m end
+function MB:ScheduleTimer(method) timers[#timers + 1] = method return #timers end
+function MB:CancelTimer() end
+
+MB:OnEnable()
+T.ok(events.MERCHANT_SHOW and events.MERCHANT_CLOSED,
+    "enable: Haendler-Events registriert")
+T.eq(MB:IsOpen(), false, "enable: Haendler zu")
+
+PP.snapshot = {
+    profession = PROF,
+    tree = { { itemId = THREAD, missing = 45 } },
+    totals = { entries = {
+        { itemId = THREAD, missing = 45 },
+        { itemId = DYE, missing = 7 },
+        { itemId = CLOTH, missing = 3 },
+    } },
+}
+T.eq(#MB:GetPlan("total").items, 0, "zu: leerer Plan")
+
+MB:MERCHANT_SHOW()
+T.eq(MB:IsOpen(), true, "show: offen")
+T.ok(events.MERCHANT_UPDATE and events.PLAYER_MONEY, "show: Update-Events aktiv")
+T.eq(sent[#sent], "PP_MERCHANT_STATE", "show: Zustand gesendet")
+
+-- Preis-Cache: nur Berufsmaterialien, Stueckpreis, keine Sonderwaehrung.
+local prices = PP.db.global.vendorPrices
+T.eq(prices[THREAD], 500, "cache: Stueckpreis Einzelware")
+T.eq(prices[DYE], 50, "cache: Buendelpreis / Buendelgroesse")
+T.eq(prices[OTHER], nil, "cache: fremde Items nicht")
+T.eq(prices[CLOTH], nil, "cache: Sonderwaehrung nicht")
+
+-- Plaene je Umfang.
+local cur = MB:GetPlan("current")
+T.eq(#cur.items, 1, "plan current: nur Faden")
+T.eq(cur.items[1].count, 45, "plan current: 45 Faden")
+local tot = MB:GetPlan("total")
+T.eq(#tot.items, 2, "plan total: Faden + Farbe")
+T.eq(tot.skipped[1] and tot.skipped[1].reason, "currency",
+    "plan total: Stoff nur gegen Sonderwaehrung")
+
+-- Kauf: exakte Aufrufliste (Faden in 20er-Stapeln, Farbe je Buendel).
+MB:Buy("total")
+T.eq(table.concat(bought, " "), "1x20 1x20 1x5 3x1 3x1",
+    "buy: Stapel fuer Faden, Buendel einzeln")
+T.eq(MB:IsBusy(), true, "buy: Sperre aktiv")
+T.ok(messages.PP_SNAPSHOT, "buy: wartet auf Snapshot")
+T.eq(timers[#timers], "OnBuyTimeout", "buy: Timeout geplant")
+T.eq(printed[1], "BUY_DONE", "buy: Zusammenfassung im Chat")
+T.eq(printed[2], "BUY_NOTE_SKIP_CURRENCY", "buy: Sonderwaehrungs-Hinweis")
+
+-- Zweiter Klick waehrend der Sperre kauft nichts.
+local before = #bought
+MB:Buy("total")
+T.eq(#bought, before, "sperre: kein Doppelkauf")
+
+-- Waehrend der Sperre zieht der Plan das Unterwegs-Material ab.
+T.eq(#MB:GetPlan("current").items, 0,
+    "sperre: Faden unterwegs -> nichts mehr zu kaufen")
+
+-- Teilankunft: Sperre bleibt.
+PP.counts[THREAD] = { bags = 30, bank = 0 }
+MB:OnSnapshot()
+T.eq(MB:IsBusy(), true, "teilweise angekommen: noch gesperrt")
+
+-- Alles angekommen (Ziel: 5 + 45 Faden, 0 + 10 Farbe): Sperre frei.
+PP.counts[THREAD] = { bags = 50, bank = 0 }
+PP.counts[DYE] = { bags = 10, bank = 0 }
+MB:OnSnapshot()
+T.eq(MB:IsBusy(), false, "angekommen: Sperre frei")
+T.eq(messages.PP_SNAPSHOT, nil, "angekommen: Snapshot-Abo beendet")
+
+-- Timeout: Kauf kam nie an (z. B. Taschen voll) -> Sperre loest sich.
+PP.snapshot.tree = { { itemId = THREAD, missing = 10 } }
+MB:Buy("current")
+T.eq(MB:IsBusy(), true, "timeout: gesperrt nach Kauf")
+MB:OnBuyTimeout()
+T.eq(MB:IsBusy(), false, "timeout: Sperre frei")
+
+-- Nichts zu kaufen: Hinweis statt Kauf.
+before = #bought
+PP.snapshot.tree = {}
+MB:Buy("current")
+T.eq(#bought, before, "leer: kein Kauf")
+T.eq(printed[#printed], "BUY_NOTHING", "leer: Hinweis im Chat")
+
+-- Schliessen: Zustand weg, doppeltes CLOSED ist harmlos.
+PP.snapshot.tree = { { itemId = THREAD, missing = 10 } }
+MB:Buy("current")
+MB:MERCHANT_CLOSED()
+T.eq(MB:IsOpen(), false, "closed: zu")
+T.eq(MB:IsBusy(), false, "closed: Sperre weg")
+T.eq(events.MERCHANT_UPDATE, nil, "closed: Update-Event abgemeldet")
+T.eq(#MB:GetPlan("current").items, 0, "closed: keine Angebote mehr")
+local n = #sent
+MB:MERCHANT_CLOSED()
+T.eq(#sent, n, "closed doppelt: kein zweites Signal")
+
+-- Umgebung zuruecksetzen.
+for k in pairs({ NewModule = 1, GetProfessions = 1, GetItemName = 1,
+                 Print = 1, db = 1, snapshot = 1, counts = 1 }) do
+    PP[k] = saved[k]
+end
+_G.GetMerchantNumItems = saved.GetMerchantNumItems
+_G.GetMerchantItemLink = saved.GetMerchantItemLink
+_G.GetMerchantItemInfo = saved.GetMerchantItemInfo
+_G.GetMerchantItemMaxStack = saved.GetMerchantItemMaxStack
+_G.BuyMerchantItem = saved.BuyMerchantItem
+_G.GetMoney = saved.GetMoney
+_G.MerchantFrame = saved.MerchantFrame

@@ -33,6 +33,7 @@ Modules\PriceSource.lua
 Modules\Crafter.lua
 Modules\AltAdvisor.lua
 Modules\CraftQueue.lua
+Modules\MerchantBuyer.lua
 
 Professions\Engineering.lua
 Professions\Tailoring.lua

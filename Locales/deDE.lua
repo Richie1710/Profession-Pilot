@@ -175,6 +175,13 @@ L["SMELT_YIELD"] = "Ergibt %dx pro Schmelzvorgang"
 
 -- H\195\164ndlerkauf
 L["PRICE_SRC_VENDOR"] = "H\195\164ndler"
+L["BUY_DONE"] = "Kaufe: %s (%s)"
+L["BUY_NOTHING"] = "Dieser H\195\164ndler f\195\188hrt nichts, was dir daf\195\188r fehlt."
+L["BUY_NOTE_CAPPED_STOCK"] = "%s: H\195\164ndler hat nur %d vorr\195\164tig"
+L["BUY_NOTE_CAPPED_MONEY"] = "%s: Gold reicht nur f\195\188r %d"
+L["BUY_NOTE_SKIP_STOCK"] = "%s: ausverkauft"
+L["BUY_NOTE_SKIP_MONEY"] = "%s: zu wenig Gold"
+L["BUY_NOTE_SKIP_CURRENCY"] = "%s: kostet Sonderw\195\164hrung - \195\188bersprungen"
 
 -- Slash / Sonstiges
 L["SLASH_HELP"] = "ProfessionPilot-Befehle: /pp show | steps | mats | prof | config | scan | debug | reset"
