@@ -94,6 +94,17 @@ unten nach oben ab (ein Craft pro Serverbestätigung, stoppt bei Kampf,
 Fensterschließen, Unterbrechung oder fehlenden Materialien; Sicherheitslimit
 200 Crafts). Das Endprodukt craftest du weiter bewusst per Haupt-Button.
 
+**Händlerkauf:** Stehst du vor einem Händler, der Materialien aus deiner Liste
+führt (Faden, Phiolen, Flussmittel …), erscheint unter dem Händlerfenster eine
+Leiste mit dem Knopf „Fehlendes kaufen" — Linksklick kauft, was dem aktuellen
+Abschnitt fehlt, Rechtsklick alles aus der Gesamtansicht. Der Tooltip zeigt
+vorher Mengen und Kosten; gekauft werden nur Basismaterialien, gedeckelt durch
+Händlervorrat und dein Gold (Sonderwährung wird übersprungen). Bis die Käufe in
+den Taschen gezählt sind, ist der Knopf gesperrt — kein Doppelkauf. Materialien,
+die das Addon bei einem Händler gesehen hat, tragen in der Einkaufsliste die
+Markierung „(Händler)" samt Stückpreis im Tooltip (accountweit gemerkt).
+Abschaltbar in den Optionen („Kaufleiste am Händler").
+
 **Kostenberater:** Bei geöffnetem Berufsfenster vergleicht das Addon die
 Reagenzienkosten deklarierter Alternativrezepte („Günstiger: … spart ~Xg pro
 Herstellung" im Hauptfenster) und markiert Zwischenprodukte in der
@@ -113,13 +124,15 @@ anderen Charaktere (mit Addon eingeloggt) von einem Material besitzen.
 **Schmelz-Infos:** Barren-Materialien tragen im Tooltip die Bergbau-Info
 („Schmelzbar aus: 2x Saroniterz, Bergbau 400") — rein informativ.
 
-**Auktionspreise (optional):** Ist Auctioneer (Auc-Advanced) oder Auctionator
-installiert, zeigt die Einkaufsliste zusätzlich eine Kosten-Spalte und die
-Gesamtkosten der fehlenden **Basismaterialien** (Auctioneer-Marktwert bevorzugt,
-sonst Auctionator-Scanpreis; 5-Minuten-Cache). Zwischenprodukte mit
+**Preise (optional):** Ist Auctioneer (Auc-Advanced) oder Auctionator
+installiert oder hat das Addon schon Händlerpreise gemerkt, zeigt die
+Einkaufsliste zusätzlich eine Kosten-Spalte und die Gesamtkosten der fehlenden
+**Basismaterialien** (gemerkter Händlerpreis vor Auctioneer-Marktwert vor
+Auctionator-Scanpreis; 5-Minuten-Cache für AH-Preise). Zwischenprodukte mit
 „zuerst herstellen"-Marker werden bewusst nicht eingepreist — ihre Zutaten
 stehen bereits expandiert in der Liste, sonst würde doppelt gezählt. Ohne
-Preis-Addon fehlt die Spalte einfach; abschaltbar in den Optionen.
+Preis-Addon und ohne gemerkte Händlerpreise fehlt die Spalte einfach;
+abschaltbar in den Optionen.
 
 ## Datenquelle und bekannte Guide-Abweichungen
 
@@ -162,12 +175,14 @@ ProfessionPilot/
 │   ├── Core.lua               AceAddon-Bootstrap, Slash, Snapshot-Bau (PP_SNAPSHOT)
 │   ├── Database.lua           AceDB-Defaults (profile/char)
 │   ├── Calc.lua               PURE Berechnungslogik + Link-Parser (headless testbar)
+│   ├── Shopping.lua           PURE Einkaufsplanung für den Händlerkauf
 │   └── ProfessionRegistry.lua Registrierung + Validierung der Berufsdaten
 ├── Modules/
 │   ├── SkillTracker.lua       Skill/Cap via GetSkillLineInfo (lokalisierungsfrei)
 │   ├── RecipeTracker.lua      Bekannte Rezepte aus dem Berufsfenster cachen
 │   ├── MaterialTracker.lua    Taschen live (gebuckeltes BAG_UPDATE), Bank gecacht
-│   ├── PriceSource.lua        Optional: Auctioneer-/Auctionator-Preise
+│   ├── PriceSource.lua        Gemerkte Händlerpreise + optional Auctioneer/Auctionator
+│   ├── MerchantBuyer.lua      Händlerkauf: Sortiment lesen, Preise merken, kaufen
 │   └── Crafter.lua            Craft-Button-Logik (DoTradeSkill)
 ├── Professions/               Reine Daten, je 1–450, IDs AtlasLoot-verifiziert
 │   ├── Engineering.lua        40 Schritte
@@ -178,7 +193,7 @@ ProfessionPilot/
 │   ├── Blacksmithing.lua      44 Schritte
 │   ├── Enchanting.lua         44 Schritte (Craft-API, s.u.)
 │   └── Inscription.lua        38 Schritte
-├── UI/                        MainWindow, StepList, MaterialList, Minimap, Options
+├── UI/                        MainWindow, StepList, MaterialList, MerchantBar, Minimap, Options
 ├── Tests/                     Headless-Tests (Lua 5.1), nicht im TOC
 └── docs/superpowers/          Design-Spec und Implementierungsplan
 ```
@@ -246,6 +261,10 @@ Bank-Toggle), Link-Parser.
 - [ ] Deutscher und englischer Client: lokalisierte Rezept-/Materialnamen
 - [ ] Lehrer-Cap erreicht (z. B. 75 als Lehrling): rote Warnung im Hauptfenster
 - [ ] Berufsfenster offen + `/pp debug`: keine „reagent mismatch"-Meldungen
+- [ ] Händler mit Faden/Phiolen öffnen: Leiste unter den Reitern „Händler/Rückkauf" (Standard-UI und ElvUI), Summen plausibel
+- [ ] Linksklick kauft die Abschnittsmenge, Rechtsklick die Gesamtmenge; Chat-Zusammenfassung; Knopf bis zur Ankunft gesperrt
+- [ ] Händler ohne passende Ware: keine Leiste; Option „Kaufleiste am Händler" aus: keine Leiste
+- [ ] Nach dem Händlerbesuch: „(Händler)"-Markierung und Stückpreis in der Einkaufsliste, Kosten auch ohne AH-Addon
 
 ## Bekannte Einschränkungen
 
@@ -277,6 +296,10 @@ Bank-Toggle), Link-Parser.
   repräsentative Glyphen-Tintenkosten) sind offen markiert — der Debug-Modus
   (`/pp debug` + Berufsfenster öffnen) prüft Reagenzien automatisch gegen den
   Client und meldet Abweichungen.
+- **Händlerkauf** gilt für den aktiven Beruf (Wechsel per `/pp prof`). Bei
+  eingeschalteter Bank-Option wird Bankbestand nicht nachgekauft. Freier
+  Taschenplatz wird nicht vorab geprüft — lehnt der Server ab (Taschen voll),
+  zeigt die Leiste nach wenigen Sekunden den echten Rest.
 
 ## Transparenzhinweis (KI-Unterstützung)
 

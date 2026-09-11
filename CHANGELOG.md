@@ -20,8 +20,19 @@ der Git-Tag `vX.Y.Z` muss dazu passen.
   und es werden nur noch tatsächlich eingeklappte Kategorien aufgeklappt.
 
 ### Hinzugefügt
+- Händlerkauf: Steht man vor einem Händler, der Materialien aus der
+  Einkaufsliste führt, kauft ein Knopf unter dem Händlerfenster die fehlende
+  Menge (Linksklick aktueller Abschnitt, Rechtsklick Gesamtansicht) — gedeckelt
+  durch Händlervorrat und Gold, gesperrt bis zur Ankunft in den Taschen.
+- Händlerpreise: Gesehene Händlerpreise werden accountweit gemerkt, in der
+  Einkaufsliste als „(Händler)" markiert und in Kostenspalte, Gesamtsumme und
+  Kostenberater verwendet — auch ohne Auctioneer/Auctionator.
 - Git-Repository, `.gitattributes` (LF), CI-Workflow für die Testsuite,
   Release-Workflow und Packaging-Skript.
+
+### Geändert
+- Die Option „Auktionspreise anzeigen" heißt jetzt „Preise anzeigen" und
+  umfasst gemerkte Händlerpreise.
 
 ## [0.9.0]
 
