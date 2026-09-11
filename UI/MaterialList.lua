@@ -119,6 +119,12 @@ local function updateRows()
             if buy and buy.verdict == "buy" then
                 badge = badge .. " |cffffd200" .. L["ADVICE_BUY"] .. "|r"
             end
+            -- Seen at a vendor (remembered by MerchantBuyer). Existence check
+            -- as in priceEnabled: a /reload without restart lacks it.
+            if not n.craftedBy and PP.GetVendorPrice
+                and PP:GetVendorPrice(n.itemId) then
+                badge = badge .. " |cffa0e0a0(" .. L["VENDOR_BADGE"] .. ")|r"
+            end
             row.name:SetText(prefix .. PP:GetItemName(n.itemId) .. badge)
 
             row.need:SetText(n.need)
@@ -298,6 +304,11 @@ local function rowTooltip(row)
     if buy and buy.verdict == "buy" and PP.util.FormatMoney(buy.saving) then
         GameTooltip:AddLine(L["ADVICE_BUY_TT"]:format(
             PP.util.FormatMoney(buy.saving)), 1, 0.82, 0, true)
+    end
+    local vendorPrice = PP.GetVendorPrice and PP:GetVendorPrice(row.itemId)
+    if vendorPrice then
+        GameTooltip:AddLine(L["VENDOR_PRICE_TT"]:format(
+            PP.util.FormatMoney(vendorPrice)), 0.63, 0.88, 0.63)
     end
     -- Mining info: how bar materials are smelted (informational only).
     local smelt = PP.SmeltData and PP.SmeltData.Get and PP.SmeltData.Get(row.itemId)
@@ -514,6 +525,7 @@ end
 MaterialList:RegisterMessage("PP_SNAPSHOT", function() MaterialList:Refresh() end)
 MaterialList:RegisterMessage("PP_ADVICE", function() MaterialList:Refresh() end)
 MaterialList:RegisterMessage("PP_QUEUE_STATE", function() MaterialList:Refresh() end)
+MaterialList:RegisterMessage("PP_MERCHANT_STATE", function() MaterialList:Refresh() end)
 MaterialList:RegisterMessage("PP_SETTINGS_CHANGED", function()
     -- The autoExpandTree default changed (or a reset happened): drop the
     -- per-node overrides so the new default applies everywhere.

@@ -190,6 +190,8 @@ L["BUY_TT_RIGHT"] = "Right-click: %s"
 L["BUY_TT_NOTHING"] = "nothing from this vendor"
 L["OPT_MERCHANT_BAR"] = "Buy bar at vendors"
 L["OPT_MERCHANT_BAR_DESC"] = "Shows a button below the vendor window that buys the missing base materials this vendor sells (left-click: current section, right-click: overall view)."
+L["VENDOR_BADGE"] = "vendor"
+L["VENDOR_PRICE_TT"] = "Vendor: %s each"
 
 -- Slash / misc
 L["SLASH_HELP"] = "ProfessionPilot commands: /pp show | steps | mats | prof | config | scan | debug | reset"

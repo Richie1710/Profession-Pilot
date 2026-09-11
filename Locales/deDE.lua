@@ -190,6 +190,8 @@ L["BUY_TT_RIGHT"] = "Rechtsklick: %s"
 L["BUY_TT_NOTHING"] = "nichts von diesem H\195\164ndler"
 L["OPT_MERCHANT_BAR"] = "Kaufleiste am H\195\164ndler"
 L["OPT_MERCHANT_BAR_DESC"] = "Zeigt unter dem H\195\164ndlerfenster einen Knopf, der die fehlenden Basismaterialien kauft, die dieser H\195\164ndler f\195\188hrt (Linksklick: aktueller Abschnitt, Rechtsklick: Gesamtansicht)."
+L["VENDOR_BADGE"] = "H\195\164ndler"
+L["VENDOR_PRICE_TT"] = "Beim H\195\164ndler: %s pro St\195\188ck"
 
 -- Slash / Sonstiges
 L["SLASH_HELP"] = "ProfessionPilot-Befehle: /pp show | steps | mats | prof | config | scan | debug | reset"
