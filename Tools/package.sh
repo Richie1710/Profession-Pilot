@@ -14,6 +14,8 @@ set -euo pipefail
 ADDON="ProfessionPilot"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 out="${1:-$root/dist}"
+# Absolut machen (relativ zum Aufrufer): zip laeuft spaeter im Staging-Verzeichnis.
+mkdir -p "$out" && out="$(cd "$out" && pwd)"
 cd "$root"
 
 version="$(sed -n 's/^## Version:[[:space:]]*//p' "$ADDON.toc" | tr -d '\r')"
@@ -38,7 +40,6 @@ done < <(git ls-files)
 [ "$count" -gt 0 ] || { echo "FEHLER: keine Dateien zum Verpacken." >&2; exit 1; }
 [ -f "$stage/$ADDON/$ADDON.toc" ] || { echo "FEHLER: $ADDON.toc fehlt im Paket." >&2; exit 1; }
 
-mkdir -p "$out"
 zipfile="$out/$ADDON-$version.zip"
 rm -f "$zipfile"
 
