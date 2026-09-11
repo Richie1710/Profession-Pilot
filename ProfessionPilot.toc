@@ -3,7 +3,7 @@
 ## Notes: Guides you through profession leveling. MVP: Engineering 1-450.
 ## Notes-deDE: Fuehrt dich durchs Berufeskillen. MVP: Ingenieurskunst 1-450.
 ## Author: Daniel
-## Version: 0.9.0
+## Version: 0.10.0
 ## SavedVariables: ProfessionPilotDB
 ## OptionalDeps: Ace3
 ## X-Category: Professions

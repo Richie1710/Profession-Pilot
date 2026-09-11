@@ -7,6 +7,8 @@ der Git-Tag `vX.Y.Z` muss dazu passen.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-11
+
 ### Behoben
 - Neu gelernte Rezepte wurden nicht erkannt, und der Knopf im Hauptfenster
   war dann deaktiviert (Issue #1) — der Rezept-Cache füllt sich aber nur beim
