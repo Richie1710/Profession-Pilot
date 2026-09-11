@@ -32,6 +32,9 @@ function AltAdvisor:OnEnable()
     self:RegisterEvent("TRADE_SKILL_UPDATE", "Update")
     self:RegisterEvent("CRAFT_UPDATE", "Update")
     self:RegisterMessage("PP_SNAPSHOT", "Update")
+    -- A vendor visit can add or change remembered vendor prices without any
+    -- recompute; re-advise so PP_ADVICE refreshes the main-window forecast.
+    self:RegisterMessage("PP_MERCHANT_STATE", "Update")
 end
 
 function AltAdvisor:WindowEvent(event)
