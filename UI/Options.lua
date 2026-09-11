@@ -93,20 +93,26 @@ local function buildOptions()
                         disabled = function() return PP:GetPriceSourceName() == nil end,
                         get = get, set = setVisual,
                     },
-                    showRoster = {
+                    merchantBar = {
                         type = "toggle", order = 11,
+                        name = L["OPT_MERCHANT_BAR"],
+                        desc = L["OPT_MERCHANT_BAR_DESC"],
+                        get = get, set = setVisual,
+                    },
+                    showRoster = {
+                        type = "toggle", order = 12,
                         name = L["OPT_SHOW_ROSTER"],
                         desc = L["OPT_SHOW_ROSTER_DESC"],
                         get = get, set = setVisual,
                     },
                     ldbText = {
-                        type = "toggle", order = 12,
+                        type = "toggle", order = 13,
                         name = L["OPT_LDB_TEXT"],
                         desc = L["OPT_LDB_TEXT_DESC"],
                         get = get, set = setVisual,
                     },
                     debug = {
-                        type = "toggle", order = 13,
+                        type = "toggle", order = 14,
                         name = L["OPT_DEBUG"], desc = L["OPT_DEBUG_DESC"],
                         get = get, set = setVisual,
                     },

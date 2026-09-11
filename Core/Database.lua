@@ -17,6 +17,7 @@ PP.defaults = {
         tooltips = true,
         showPrices = true,            -- remembered vendor prices or Auctioneer/Auctionator
         showRoster = true,            -- alt counts in shopping-list tooltips
+        merchantBar = true,           -- buy bar below the vendor window
         ldbText = true,               -- progress text on DataBroker displays
         debug = false,
         window = {},                  -- [frameName] = { point, x, y }

@@ -47,5 +47,6 @@ Professions\Inscription.lua
 UI\MainWindow.lua
 UI\StepList.lua
 UI\MaterialList.lua
+UI\MerchantBar.lua
 UI\MinimapButton.lua
 UI\Options.lua
