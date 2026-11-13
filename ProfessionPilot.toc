@@ -17,6 +17,7 @@ Locales\deDE.lua
 Core\Core.lua
 Core\Database.lua
 Core\Calc.lua
+Core\MaterialPlan.lua
 Core\ProfessionRegistry.lua
 Core\Advisor.lua
 Core\Queue.lua
@@ -34,6 +35,7 @@ Modules\Crafter.lua
 Modules\AltAdvisor.lua
 Modules\CraftQueue.lua
 Modules\MerchantBuyer.lua
+Modules\PublicAPI.lua
 
 Professions\Engineering.lua
 Professions\Tailoring.lua
