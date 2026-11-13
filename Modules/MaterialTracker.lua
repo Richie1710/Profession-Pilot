@@ -25,10 +25,14 @@ function MaterialTracker:OnEnable()
     buildInterest()
     self.bagCounts = {}
     self.bankOpen = false
+    -- Oeffentliche API (PP:GetMaterialPlan): Taschenzahlen gelten erst nach dem
+    -- ersten FullScan seit dem letzten Ladescreen als gelesen.
+    PP.state.countsReady = false
 
     self:RegisterBucketEvent("BAG_UPDATE", 0.3, "OnBagUpdate")
     -- Fires only while the bank is open; safe to keep registered permanently.
     self:RegisterBucketEvent("PLAYERBANKSLOTS_CHANGED", 0.3, "OnBankSlotsChanged")
+    self:RegisterEvent("PLAYER_LEAVING_WORLD", "OnLeavingWorld")
     self:RegisterEvent("PLAYER_ENTERING_WORLD", "FullScan")
     self:RegisterEvent("BANKFRAME_OPENED")
     self:RegisterEvent("BANKFRAME_CLOSED")
@@ -100,7 +104,14 @@ end
 
 function MaterialTracker:FullScan()
     self:ScanBags()
+    -- Nur der volle Scan (Ladescreen, /pp scan) setzt das Flag; ein BAG_UPDATE
+    -- mitten im Login koennte noch unvollstaendige Taschen lesen.
+    PP.state.countsReady = true
     self:Publish()
+end
+
+function MaterialTracker:OnLeavingWorld()
+    PP.state.countsReady = false
 end
 
 function MaterialTracker:BANKFRAME_OPENED()

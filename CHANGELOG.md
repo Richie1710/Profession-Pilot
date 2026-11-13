@@ -7,6 +7,20 @@ der Git-Tag `vX.Y.Z` muss dazu passen.
 
 ## [Unreleased]
 
+### Hinzugefügt
+- Öffentliche, versionierte API für andere Addons und Bots (Issue
+  Richie1710/ProfessionLeveler#26): `ProfessionPilot:GetMaterialPlan(key, toSkill, opts)`
+  liefert eine flache Liste der Basismaterialien (`itemId, need, bags, bank,
+  have, missing`) bis zu einem frei wählbaren Zielskill, mit aufgelösten
+  Zwischenprodukten und ohne Doppelzählung des Bestands. `GetMaterialPlanString`
+  gibt dieselben Daten als stabilen String für `Lua.LuaDoString` zurück
+  (`v1|ready|leatherworking|290|300|450|0|itemId:need:bags:bank:missing;…|…`).
+  Die API rechnet für jeden erlernten Beruf, nicht nur den aktiven, ändert
+  weder den aktiven Beruf noch Einstellungen und meldet Fehler als Code
+  (`not_ready`, `unknown_profession`, `no_profession`, `bad_args`) statt `nil`.
+  `countsReady` zeigt, ob die Taschenzahlen nach dem Ladescreen gelesen sind.
+  Beschreibung im README unter „Öffentliche API“.
+
 ## [0.10.0] - 2026-09-11
 
 ### Behoben

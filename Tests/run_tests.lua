@@ -28,6 +28,9 @@ local MANIFEST = {
     "test_recipetracker",
     "test_pricesource",
     "test_merchantbuyer",
+    "test_materialplan",
+    "test_publicapi",
+    "test_materialtracker",
     "test_load_all",
 }
 
@@ -63,6 +66,7 @@ end
 -- Load production code under test (pure files only).
 local CODE = {
     "/../Core/Calc.lua",
+    "/../Core/MaterialPlan.lua",
     "/../Core/Advisor.lua",
     "/../Core/Queue.lua",
     "/../Core/Shopping.lua",
