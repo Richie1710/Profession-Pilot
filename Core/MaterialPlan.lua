@@ -170,18 +170,26 @@ end
 -- ---------------------------------------------------------------------------
 -- Stringform (Lua.LuaDoString kann nur Strings zurueckgeben)
 --
---   v<API_VERSION>|<state>|<profession>|<skill>|<cap>|<toSkill>|<includeBank>|<leaves>|<crafts>
+--   v<API_VERSION>|<state>|<profession>|<skill>|<cap>|<toSkill>|<covered>|<includeBank>|<bankScanned>|<leaves>|<crafts>
 --
 --   state        ready      Taschenzahlen gelesen, Plan verwertbar
 --                notready   Plan gerechnet, aber Taschenzahlen noch nicht gelesen
 --                           (missing ist dann ueberall zu hoch) -> warten, neu fragen
 --   profession   Berufsschluessel, z. B. leatherworking
+--   toSkill      angefragter Zielskill (begrenzt auf das Berufsmaximum)
+--   covered      coveredToSkill: bis hierhin rechnet der Plan tatsaechlich (Schrittgrenze)
 --   includeBank  1 = Bank zaehlt zu have, 0 = nur Taschen
+--   bankScanned  1 = Bank wurde mindestens einmal gelesen, 0 = bank ist ueberall 0
 --   leaves       itemId:need:bags:bank:missing, durch ';' getrennt, nach itemId sortiert
+--                missing ist verbindlich (nicht need - have, siehe README)
 --   crafts       itemId:recipeSpellId:crafts, durch ';' getrennt (Zwischenprodukte,
 --                die noch hergestellt werden muessen), nach recipeSpellId sortiert
 --
 --   Fehler:  v<API_VERSION>|err|<code>
+--
+--   Parser: an '|' teilen und leere Felder behalten, mindestens 11 Felder
+--   verlangen, zusaetzliche Felder am Ende ignorieren (spaetere Erweiterungen
+--   innerhalb von v1 haengen nur hinten an).
 --
 -- Keine Itemnamen, keine Leerzeichen, keine Sonderzeichen ausser | : ;
 -- Leere Listen sind leere Felder: "...|1||" (beide leer).
@@ -211,7 +219,9 @@ function MaterialPlan.ToString(plan)
         plan.skill,
         plan.cap,
         plan.toSkill,
+        plan.coveredToSkill,
         plan.includeBank and 1 or 0,
+        plan.bankScanned and 1 or 0,
         table.concat(leaves, ";"),
         table.concat(crafts, ";"),
     }, "|")
@@ -261,7 +271,7 @@ local function numbers(s, count)
 end
 
 -- Gegenstueck zu ToString: -> plan-Tabelle (gleiche Felder wie Build, ausser
--- maxSkill/coveredToSkill/bankScanned) bzw. { ok = false, error = code }.
+-- maxSkill) bzw. { ok = false, error = code }.
 -- Unbekannte Version, kaputte Felder -> error = "bad_format".
 function MaterialPlan.Parse(str)
     if type(str) ~= "string" then
@@ -275,18 +285,20 @@ function MaterialPlan.Parse(str)
     if f[2] == "err" then
         return { ok = false, error = f[3] or "bad_format", apiVersion = API_VERSION }
     end
-    if #f ~= 9 or (f[2] ~= "ready" and f[2] ~= "notready") then
+    if #f < 11 or (f[2] ~= "ready" and f[2] ~= "notready") then
         return { ok = false, error = "bad_format" }
     end
 
     local skill, cap, toSkill = tonumber(f[4]), tonumber(f[5]), tonumber(f[6])
-    if not (skill and cap and toSkill) or (f[7] ~= "0" and f[7] ~= "1") or f[3] == "" then
+    local covered = tonumber(f[7])
+    if not (skill and cap and toSkill and covered) or f[3] == ""
+        or (f[8] ~= "0" and f[8] ~= "1") or (f[9] ~= "0" and f[9] ~= "1") then
         return { ok = false, error = "bad_format" }
     end
-    local includeBank = f[7] == "1"
+    local includeBank = f[8] == "1"
 
     local leaves = {}
-    local list = splitList(f[8], ";")
+    local list = splitList(f[10], ";")
     for i = 1, #list do
         local n = numbers(list[i], 5)
         if not n then return { ok = false, error = "bad_format" } end
@@ -296,7 +308,7 @@ function MaterialPlan.Parse(str)
         }
     end
     local intermediates = {}
-    list = splitList(f[9], ";")
+    list = splitList(f[11], ";")
     for i = 1, #list do
         local n = numbers(list[i], 3)
         if not n then return { ok = false, error = "bad_format" } end
@@ -311,7 +323,9 @@ function MaterialPlan.Parse(str)
         skill = skill,
         cap = cap,
         toSkill = toSkill,
+        coveredToSkill = covered,
         includeBank = includeBank,
+        bankScanned = f[9] == "1",
         leaves = leaves,
         intermediates = intermediates,
     }

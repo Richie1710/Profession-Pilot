@@ -256,13 +256,24 @@ local s    = ProfessionPilot:GetMaterialPlanString(key, toSkill, opts)   -- Stri
 }
 ```
 
-- `need`: gesamter Bedarf bis `toSkill`, **inklusive** der Zutaten aufgelöster
+- `need`: Bedarf bis `toSkill`, **inklusive** der Zutaten aufgelöster
   Zwischenprodukte (die Heavy-Borean-Kette ist in `33568` Borean Leather
   eingerechnet). Zwischenprodukte selbst erscheinen nicht in `leaves`.
-- `bags`, `bank`: tatsächlicher Bestand. `have` = `bags` (+ `bank` mit `includeBank`).
-  `missing` = `need` abzüglich Bestand, nie negativ. Der Bestand eines Items wird
+  **`need` ist kein stabiler Bruttobedarf:** Es hängt vom Bestand an
+  Zwischenprodukten ab. Mit 10 Heavy Borean Leather in den Taschen sinkt der
+  Borean-Bedarf von 2315 auf 2255 (12 statt 22 Crafts der Kette).
+- `bags`, `bank`: tatsächlicher Bestand. `have` = `bags` (+ `bank` mit `includeBank`),
+  also der gezählte Bestand, nicht gedeckelt.
+- **`missing` ist die verbindliche Zahl** (Farmmenge). Der Bestand eines Items wird
   genau einmal abgezogen, auch wenn es direkt und über Zwischenprodukte gebraucht
-  wird: `missing == max(0, need - have)` gilt für jedes Blatt.
+  wird. `missing` ist **nicht** immer `need - have`: Stellt ein Levelschritt im
+  Bereich das Item selbst her (Ausbeute und Überschuss durch `numMade` werden
+  gutgeschrieben), ist `missing` kleiner. Beispiel Lederverarbeitung 1 → 100 mit
+  39 Light Leather: `need` 230, `have` 39, `missing` 172 (nicht 191), denn der
+  Schritt 1-20 liefert 19 Light Leather. Es gilt immer
+  `0 <= missing <= max(0, need - have)`, Gleichheit nur, wenn kein Schritt im
+  Bereich das Item herstellt (z. B. Lederverarbeitung 290 → 450). Der Aufrufer
+  benutzt `missing`, nie `need - have`.
 - Fehler liefern ebenfalls eine Tabelle, nie `nil`: `{ ok = false, error = code, apiVersion = 1 }`.
 
 | `error` | Bedeutung |
@@ -285,22 +296,29 @@ Aus dem Spiel kommen nur Strings zurück (WRobot: `Lua.LuaDoString<string>(...)`
 Format, Felder durch `|` getrennt, ohne Itemnamen:
 
 ```
-v1|<state>|<profession>|<skill>|<cap>|<toSkill>|<includeBank>|<leaves>|<crafts>
+v1|<state>|<profession>|<skill>|<cap>|<toSkill>|<covered>|<includeBank>|<bankScanned>|<leaves>|<crafts>
 ```
 
-| Feld | Inhalt |
-|---|---|
-| `v1` | `API_VERSION`; vor dem Parsen prüfen |
-| `state` | `ready` oder `notready` (siehe `countsReady`) |
-| `includeBank` | `1` oder `0` |
-| `leaves` | `itemId:need:bags:bank:missing`, durch `;` getrennt, nach itemId sortiert |
-| `crafts` | `itemId:recipeSpellId:crafts`, durch `;` getrennt |
+| Nr. | Feld | Inhalt |
+|---|---|---|
+| 0 | `v1` | `API_VERSION`; vor dem Parsen prüfen |
+| 1 | `state` | `ready` oder `notready` (siehe `countsReady`) |
+| 2 | `profession` | Berufsschlüssel |
+| 3 | `skill` | aktueller Skill |
+| 4 | `cap` | aktuelles Rang-Maximum |
+| 5 | `toSkill` | angefragter Zielskill (auf das Berufsmaximum begrenzt) |
+| 6 | `covered` | `coveredToSkill`: bis hierhin rechnet der Plan tatsächlich (Schrittgrenze, kann über `toSkill` liegen) |
+| 7 | `includeBank` | `1` oder `0` |
+| 8 | `bankScanned` | `1`: Bank wurde schon einmal gelesen. `0`: `bank` ist überall 0, auch mit `includeBank=1` |
+| 9 | `leaves` | `itemId:need:bags:bank:missing`, durch `;` getrennt, nach itemId sortiert. `missing` ist verbindlich (siehe oben) |
+| 10 | `crafts` | `itemId:recipeSpellId:crafts`, durch `;` getrennt |
 
 Leere Listen sind leere Felder. Fehler: `v1|err|<code>` mit den Codes der Tabelle
-oben. Beispiel, Lederverarbeitung 290 → 450 ohne Bestand (Taschen leer):
+oben (Feld 2 ist der Code). Beispiel, Lederverarbeitung 290 → 450 ohne Bestand
+(Taschen leer, Bank nie gelesen):
 
 ```
-v1|ready|leatherworking|290|300|450|0|2325:10:0:0:10;8170:120:0:0:120;14341:32:0:0:32;21887:450:0:0:450;33568:2315:0:0:2315;35622:18:0:0:18;35627:50:0:0:50;36860:50:0:0:50;37705:65:0:0:65;38558:10:0:0:10;43102:15:0:0:15;44128:10:0:0:10|38425:50936:22
+v1|ready|leatherworking|290|300|450|450|0|0|2325:10:0:0:10;8170:120:0:0:120;14341:32:0:0:32;21887:450:0:0:450;33568:2315:0:0:2315;35622:18:0:0:18;35627:50:0:0:50;36860:50:0:0:50;37705:65:0:0:65;38558:10:0:0:10;43102:15:0:0:15;44128:10:0:0:10|38425:50936:22
 ```
 
 Aufruf aus dem Bot (Lua-Seite, `pcall` fängt ein fehlendes Addon ab):
@@ -314,8 +332,23 @@ return ok and s or ""
 ```
 
 `ProfessionPilot.MaterialPlan.Parse(s)` zerlegt den String wieder in eine Tabelle
-(gleiche Felder wie oben, ohne `maxSkill`, `coveredToSkill`, `bankScanned`).
-Ändert sich das Format, steigt `API_VERSION`.
+(gleiche Felder wie oben, ohne `maxSkill`).
+
+Hinweise für den Parser auf der C#-Seite (WRobot):
+- An `|` teilen und **leere Felder behalten**: `s.Split('|')`, nicht mit
+  `StringSplitOptions.RemoveEmptyEntries`. Leere Listen sind leere Felder und
+  dürfen die Nummerierung nicht verschieben.
+- **Mindestens 11 Felder verlangen** (Nr. 0 bis 10) und **zusätzliche Felder am Ende
+  ignorieren**: Innerhalb von `v1` werden spätere Erweiterungen nur hinten angehängt.
+  Feld 0 muss genau `v1` sein, sonst abbrechen. Bei Feld 1 `err` ist Feld 2 der
+  Fehlercode und es gibt keine weiteren Felder.
+- Zahlen mit `int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out n)`
+  lesen (alle Werte sind ganzzahlig und nicht negativ).
+- Listen an `;` teilen, Einträge an `:` (5 bzw. 3 Teile), leere Liste = leerer String.
+- Bei `notready` oder Fehler `not_ready` kurz warten und neu fragen, bei `bankScanned=0`
+  und `includeBank=1` nicht auf Bankzahlen bauen.
+
+Ändert sich das Format inkompatibel, steigt `API_VERSION`.
 
 ## Einen weiteren Beruf hinzufügen
 

@@ -139,14 +139,16 @@ T.eq(withBank.includeBank, true, "includeBank im Plan")
 T.eq(leafOf(bagsOnly, 21887).missing, 0, "Ueberschuss: missing nie negativ")
 T.eq(leafOf(bagsOnly, 21887).have, 500, "have meldet den echten Bestand")
 
--- Invariante: fuer jedes Blatt gilt missing == max(0, need - have). Der Bestand
--- eines Items wird genau einmal abgezogen, egal an wie vielen Stellen im
--- Baum es vorkommt (direkter Bedarf + Kettenzutaten).
+-- Sonderfall ohne Herstellung im Bereich: Wird ein Item von keinem Levelschritt
+-- zwischen Skill und Ziel hergestellt, gilt missing == max(0, need - have). Der
+-- Bestand eines Items wird genau einmal abgezogen, egal an wie vielen Stellen
+-- im Baum es vorkommt (direkter Bedarf + Kettenzutaten). Allgemein gilt das
+-- NICHT (siehe unten): verbindlich ist immer missing, nie need - have.
 local function checkInvariant(plan, label)
     for _, e in ipairs(plan.leaves) do
         local expect = e.need - e.have
         if expect < 0 then expect = 0 end
-        T.eq(e.missing, expect, label .. " missing-Invariante " .. e.itemId)
+        T.eq(e.missing, expect, label .. " missing == max(0, need - have) ohne Herstellung " .. e.itemId)
     end
 end
 checkInvariant(p, "leer")
@@ -159,6 +161,36 @@ end
 checkInvariant(planOf(290, 450, big, true), "viel")
 checkInvariant(planOf(205, 450, big, false), "viel 205")
 checkInvariant(planOf(325, 410, { [33568] = { bags = 1000, bank = 0 } }, false), "borean")
+
+-- Grenze der Gleichung: Light Leather (2318) wird vom Levelschritt 1-20 selbst
+-- hergestellt und gutgeschrieben. Lederverarbeitung 1 -> 100 mit 39 Light Leather:
+-- need 230, aber missing 172 (nicht 230 - 39 = 191), ohne Bestand missing 211.
+local lw0 = planOf(1, 100, {}, false, { cap = 75 })
+local lw39 = planOf(1, 100, { [2318] = { bags = 39, bank = 0 } }, false, { cap = 75 })
+T.eq(leafOf(lw0, 2318).need, 230, "1->100 ohne Bestand: need 230")
+T.eq(leafOf(lw0, 2318).missing, 211, "1->100 ohne Bestand: missing 211 (Ausbeute des Schritts 1-20)")
+T.eq(leafOf(lw39, 2318).need, 230, "1->100 mit 39: need unveraendert 230")
+T.eq(leafOf(lw39, 2318).have, 39, "1->100 mit 39: have 39")
+T.eq(leafOf(lw39, 2318).missing, 172, "1->100 mit 39: missing 172")
+T.ok(leafOf(lw39, 2318).missing ~= leafOf(lw39, 2318).need - leafOf(lw39, 2318).have,
+    "need - have (191) ist hier NICHT missing")
+-- Allgemeine Schranken: 0 <= missing <= need und missing <= max(0, need - have).
+local function checkBounds(plan, label)
+    for _, e in ipairs(plan.leaves) do
+        T.ok(e.missing >= 0 and e.missing <= e.need, label .. " 0 <= missing <= need " .. e.itemId)
+        T.ok(e.missing <= math.max(0, e.need - e.have), label .. " missing <= need - have " .. e.itemId)
+    end
+end
+checkBounds(lw0, "1->100")
+checkBounds(lw39, "1->100 mit Bestand")
+checkBounds(planOf(1, 450, big, true), "1->450 viel")
+checkBounds(planOf(1, 450, {}, false), "1->450 leer")
+
+-- need haengt vom Bestand an Zwischenprodukten ab (kein stabiler Bruttobedarf).
+local needLeer = leafOf(planOf(290, 450), 33568).need
+local needHeavy = leafOf(planOf(290, 450, { [38425] = { bags = 10, bank = 0 } }), 33568).need
+T.eq(needLeer, 2315, "Borean need ohne Zwischenprodukt-Bestand")
+T.eq(needHeavy, 2255, "Borean need mit 10 Heavy Borean: 12 statt 22 Crafts")
 
 -- Borean Leather kommt direkt und ueber die Kette vor: 1000 im Beutel decken
 -- die Rohsumme, der Rest geht in die Kette -- insgesamt nie mehr als need - Bestand.
@@ -186,6 +218,13 @@ T.eq(MP.Build(leather, { skill = 290, counts = {} }).countsReady, false,
 T.eq(planOf(290, 450, {}, false, { bankScanned = true }).bankScanned, true,
     "bankScanned durchgereicht")
 T.eq(planOf(290, 450).bankScanned, false, "bankScanned Standard false")
+-- includeBank ohne gelesene Bank: bank bleibt 0, der Plan sagt es ehrlich.
+local noBank = planOf(290, 450, { [8170] = { bags = 12, bank = 0 } }, true)
+T.eq(noBank.includeBank, true, "includeBank true ohne gelesene Bank")
+T.eq(noBank.bankScanned, false, "bankScanned false: Bank nie gelesen")
+T.eq(leafOf(noBank, 8170).missing, 108, "ohne gelesene Bank zaehlt nur die Tasche")
+T.eq(MP.ToString(noBank):match("^v1|%a+|%a+|%d+|%d+|%d+|%d+|(%d)|(%d)|"), "1",
+    "String: includeBank 1")
 
 -- Fehlerfaelle -----------------------------------------------------------------
 
@@ -254,7 +293,7 @@ T.eq(MP.Build(mini, { skill = 10, toSkill = 15 }).coveredToSkill, 20, "Mini: 15 
 
 -- Goldener String: Aenderungen am Format muessen API_VERSION erhoehen.
 T.eq(MP.ToString(planOf(290, 450)),
-    "v1|ready|leatherworking|290|300|450|0|"
+    "v1|ready|leatherworking|290|300|450|450|0|0|"
     .. "2325:10:0:0:10;8170:120:0:0:120;14341:32:0:0:32;21887:450:0:0:450;"
     .. "33568:2315:0:0:2315;35622:18:0:0:18;35627:50:0:0:50;36860:50:0:0:50;"
     .. "37705:65:0:0:65;38558:10:0:0:10;43102:15:0:0:15;44128:10:0:0:10"
@@ -264,9 +303,14 @@ T.eq(MP.ToString(planOf(290, 450, counts, true)):match("8170:%d+:%d+:%d+:%d+"),
     "8170:120:12:100:8", "Leaf-Feld mit Taschen, Bank und fehlender Menge")
 T.eq(MP.ToString(planOf(290, 450, {}, false, { countsReady = false })):sub(1, 11),
     "v1|notready", "notready im String")
-T.eq(MP.ToString(planOf(290, 450, {}, true)):match("^v1|%a+|%a+|%d+|%d+|%d+|(%d)|"),
+T.eq(MP.ToString(planOf(290, 450, {}, true)):match("^v1|%a+|%a+|%d+|%d+|%d+|%d+|(%d)|"),
     "1", "includeBank-Flag im String")
-T.eq(MP.ToString(planOf(290, 290)), "v1|ready|leatherworking|290|300|290|0||",
+T.eq(MP.ToString(planOf(290, 450, {}, true, { bankScanned = true })):match("^v1|%a+|%a+|%d+|%d+|%d+|%d+|%d|(%d)|"),
+    "1", "bankScanned-Flag im String")
+local sTo, sCov = MP.ToString(planOf(290, 375)):match("^v1|%a+|%a+|%d+|%d+|(%d+)|(%d+)|")
+T.eq(sTo, "375", "toSkill 375 im String")
+T.eq(sCov, "380", "coveredToSkill 380 im String")
+T.eq(MP.ToString(planOf(290, 290)), "v1|ready|leatherworking|290|300|290|290|0|0||",
     "leere Listen sind leere Felder")
 T.eq(MP.ToString(MP.Fail("no_profession")), "v1|err|no_profession", "Fehlerstring")
 T.eq(MP.ToString(nil), "v1|err|bad_args", "ToString(nil)")
@@ -286,6 +330,8 @@ local function roundTrip(plan, label)
     T.eq(back.skill, plan.skill, label .. ": Skill")
     T.eq(back.cap, plan.cap, label .. ": Cap")
     T.eq(back.toSkill, plan.toSkill, label .. ": Zielskill")
+    T.eq(back.coveredToSkill, plan.coveredToSkill, label .. ": coveredToSkill")
+    T.eq(back.bankScanned, plan.bankScanned, label .. ": bankScanned")
     T.eq(back.includeBank, plan.includeBank, label .. ": includeBank")
     T.eq(back.countsReady, plan.countsReady, label .. ": countsReady")
     T.eq(#back.leaves, #plan.leaves, label .. ": Anzahl Blaetter")
@@ -305,6 +351,8 @@ end
 roundTrip(planOf(290, 450), "leer")
 roundTrip(planOf(290, 450, counts, false), "bags")
 roundTrip(planOf(290, 450, counts, true), "bank")
+roundTrip(planOf(290, 450, counts, true, { bankScanned = true }), "bank gelesen")
+roundTrip(planOf(290, 375), "Ziel 375 (covered 380)")
 roundTrip(planOf(290, 450, big, true), "viel")
 roundTrip(planOf(205, 450, {}, false, { countsReady = false }), "notready")
 roundTrip(planOf(290, 290), "leere Listen")
@@ -322,14 +370,23 @@ end
 bad(nil, "nil")
 bad("", "leer")
 bad("garbage", "Muell")
-bad("v2|ready|leatherworking|290|300|450|0||", "andere Version")
-bad("v1|ready|leatherworking|290|300|450|0|", "zu wenige Felder")
-bad("v1|ready|leatherworking|290|300|450|0|||", "zu viele Felder")
-bad("v1|maybe|leatherworking|290|300|450|0||", "unbekannter Zustand")
-bad("v1|ready||290|300|450|0||", "leerer Berufsschluessel")
-bad("v1|ready|leatherworking|x|300|450|0||", "Skill nicht numerisch")
-bad("v1|ready|leatherworking|290|300|450|2||", "includeBank nicht 0/1")
-bad("v1|ready|leatherworking|290|300|450|0|8170:1:2:3|", "Blatt mit 4 Feldern")
-bad("v1|ready|leatherworking|290|300|450|0|8170:1:2:3:x|", "Blatt nicht numerisch")
-bad("v1|ready|leatherworking|290|300|450|0||38425:50936", "Zwischenprodukt mit 2 Feldern")
+bad("v2|ready|leatherworking|290|300|450|450|0|0||", "andere Version")
+bad("v1|ready|leatherworking|290|300|450|450|0|0|", "zu wenige Felder")
+bad("v1|ready|leatherworking|290|300|450|0|", "altes 9-Felder-Format")
+bad("v1|maybe|leatherworking|290|300|450|450|0|0||", "unbekannter Zustand")
+bad("v1|ready||290|300|450|450|0|0||", "leerer Berufsschluessel")
+bad("v1|ready|leatherworking|x|300|450|450|0|0||", "Skill nicht numerisch")
+bad("v1|ready|leatherworking|290|300|450|x|0|0||", "covered nicht numerisch")
+bad("v1|ready|leatherworking|290|300|450|450|2|0||", "includeBank nicht 0/1")
+bad("v1|ready|leatherworking|290|300|450|450|0|2||", "bankScanned nicht 0/1")
+bad("v1|ready|leatherworking|290|300|450|450|0|0|8170:1:2:3|", "Blatt mit 4 Feldern")
+bad("v1|ready|leatherworking|290|300|450|450|0|0|8170:1:2:3:x|", "Blatt nicht numerisch")
+bad("v1|ready|leatherworking|290|300|450|450|0|0||38425:50936", "Zwischenprodukt mit 2 Feldern")
+
+-- Zusaetzliche Felder am Ende werden ignoriert (Vorwaertskompatibilitaet innerhalb von v1).
+local extra = MP.Parse("v1|ready|leatherworking|290|300|450|450|0|1|8170:120:12:0:108||futurefield|more")
+T.ok(extra.ok, "Parse ignoriert zusaetzliche Felder am Ende")
+T.eq(extra.coveredToSkill, 450, "Parse: covered")
+T.eq(extra.bankScanned, true, "Parse: bankScanned")
+T.eq(extra.leaves[1].missing, 108, "Parse: Blatt trotz Zusatzfeldern")
 

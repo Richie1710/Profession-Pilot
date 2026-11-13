@@ -134,6 +134,9 @@ T.ok(back.ok, "Rundlauf: Parse ok")
 T.eq(back.profession, "leatherworking", "Rundlauf: Beruf")
 T.eq(back.leaves[2].itemId, 8170, "Rundlauf: zweites Blatt Rugged Leather")
 T.eq(back.leaves[2].missing, 108, "Rundlauf: fehlende Menge")
+T.eq(back.coveredToSkill, 450, "Rundlauf: coveredToSkill")
+T.eq(back.bankScanned, true, "Rundlauf: bankScanned aus db.char")
+T.eq(s:match("^v1|%a+|%a+|%d+|%d+|%d+|%d+|%d|(%d)|"), "1", "bankScanned im String")
 
 -- Leerer Bestand (PP.counts leer) rechnet ohne Fehler --------------------------------------
 

@@ -14,7 +14,12 @@ der Git-Tag `vX.Y.Z` muss dazu passen.
   have, missing`) bis zu einem frei wählbaren Zielskill, mit aufgelösten
   Zwischenprodukten und ohne Doppelzählung des Bestands. `GetMaterialPlanString`
   gibt dieselben Daten als stabilen String für `Lua.LuaDoString` zurück
-  (`v1|ready|leatherworking|290|300|450|0|itemId:need:bags:bank:missing;…|…`).
+  (`v1|ready|leatherworking|290|300|450|450|0|0|itemId:need:bags:bank:missing;…|…`,
+  mit `coveredToSkill` und `bankScanned`). `missing` ist die verbindliche
+  Farmmenge; `need - have` ist nur eine Obergrenze, weil Levelschritte im
+  Bereich Items selbst herstellen können (Lederverarbeitung 1 → 100 mit 39 Light
+  Leather: `need` 230, `missing` 172). `need` hängt außerdem vom Bestand an
+  Zwischenprodukten ab.
   Die API rechnet für jeden erlernten Beruf, nicht nur den aktiven, ändert
   weder den aktiven Beruf noch Einstellungen und meldet Fehler als Code
   (`not_ready`, `unknown_profession`, `no_profession`, `bad_args`) statt `nil`.
