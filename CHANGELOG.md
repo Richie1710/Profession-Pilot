@@ -7,6 +7,8 @@ der Git-Tag `vX.Y.Z` muss dazu passen.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-22
+
 ### Hinzugefügt
 - Öffentliche, versionierte API für andere Addons und Bots (Issue
   Richie1710/ProfessionLeveler#26): `ProfessionPilot:GetMaterialPlan(key, toSkill, opts)`
