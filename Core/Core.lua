@@ -214,6 +214,8 @@ function PP:HandleSlash(input)
         self.UI.StepList:Toggle()
     elseif cmd == "mats" or cmd == "material" then
         self.UI.MaterialList:Toggle()
+    elseif cmd == "trainer" or cmd == "trainers" or cmd == "lehrer" then
+        self.UI.TrainerList:Toggle()
     elseif cmd == "config" or cmd == "options" then
         self.UI.Options:Open()
     elseif cmd == "prof" or cmd == "beruf" then
