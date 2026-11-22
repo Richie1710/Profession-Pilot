@@ -4,7 +4,8 @@ local root = ((arg and arg[0] or ""):match("^(.*)[/\\]") or ".") .. "/.."
 local PP = _G.ProfessionPilot
 
 local GLOBALS = { "TomTom", "Nx", "WorldMapFrame", "GetMapContinents", "GetMapZones", "SetMapZoom",
-    "GetMapInfo", "GetCurrentMapContinent", "GetCurrentMapZone", "SetMapToCurrentZone" }
+    "GetMapInfo", "GetCurrentMapContinent", "GetCurrentMapZone", "SetMapToCurrentZone",
+    "GetCurrentMapDungeonLevel", "SetDungeonMapLevel" }
 local saved = { Print = rawget(PP, "Print"), db = rawget(PP, "db"), Waypoint = rawget(PP, "Waypoint") }
 local savedG = {}
 for _, k in ipairs(GLOBALS) do savedG[k] = rawget(_G, k) end
@@ -132,6 +133,27 @@ local before = #zoomCalls
 W.Set(OG)
 T.eq(#zoomCalls, before, "Cache wird nur einmal pro Sitzung gebaut")
 T.eq(nx.removed[1], 101, "Carbonite: alter Wegpunkt entfernt")
+
+-- mehrstoeckige Karte: Stockwerk wird nach dem Cache-Bau wiederhergestellt
+reset()
+_G.Nx = newCarbonite()
+local level = 2
+_G.GetCurrentMapDungeonLevel = function() return level end
+_G.SetDungeonMapLevel = function(l) zoomCalls[#zoomCalls + 1] = "level" .. l; level = l end
+local oldZoom = _G.SetMapZoom
+_G.SetMapZoom = function(c, z) oldZoom(c, z); level = 1 end
+W.Set(SW)
+T.eq(zoomCalls[#zoomCalls - 1], "2:1", "Stockwerk: erst Zone wiederhergestellt")
+T.eq(zoomCalls[#zoomCalls], "level2", "Stockwerk: dann SetDungeonMapLevel(2)")
+T.eq(level, 2, "Stockwerk 2 nach dem Cache-Bau aktiv")
+
+-- Karte ohne Stockwerke: kein SetDungeonMapLevel
+reset()
+_G.Nx = newCarbonite()
+_G.GetCurrentMapDungeonLevel = function() return 0 end
+W.Set(SW)
+T.eq(zoomCalls[#zoomCalls], "2:1", "ohne Stockwerk: kein SetDungeonMapLevel")
+_G.GetCurrentMapDungeonLevel, _G.SetDungeonMapLevel = nil, nil
 
 -- Kartenansicht Kontinent 0 -> SetMapToCurrentZone
 reset()

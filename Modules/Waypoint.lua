@@ -51,6 +51,8 @@ local function buildCache()
     end
     local oldC = type(GetCurrentMapContinent) == "function" and GetCurrentMapContinent() or nil
     local oldZ = type(GetCurrentMapZone) == "function" and GetCurrentMapZone() or nil
+    -- Stockwerk mitsichern: SetMapZoom setzt mehrstoeckige Karten (Dalaran/Unterstadt) auf Ebene 1
+    local oldLevel = type(GetCurrentMapDungeonLevel) == "function" and GetCurrentMapDungeonLevel() or 0
     local cache = {}
     local ok = pcall(function()
         for c = 1, select("#", GetMapContinents()) do
@@ -63,6 +65,9 @@ local function buildCache()
     end)
     if oldC and oldC > 0 then
         pcall(SetMapZoom, oldC, oldZ or 0)
+        if oldLevel and oldLevel > 0 and type(SetDungeonMapLevel) == "function" then
+            pcall(SetDungeonMapLevel, oldLevel)
+        end
     elseif type(SetMapToCurrentZone) == "function" then
         pcall(SetMapToCurrentZone)
     end
