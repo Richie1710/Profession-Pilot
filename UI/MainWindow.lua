@@ -190,16 +190,21 @@ local function createFrame()
 
     local function makeButton(text, xOff, onClick)
         local b = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-        b:SetWidth(88)
+        b:SetWidth(68)
         b:SetHeight(20)
+        -- vier Knoepfe auf 300 px: kleinere Schrift, damit "Materials" passt
+        b:SetNormalFontObject("GameFontNormalSmall")
+        b:SetHighlightFontObject("GameFontHighlightSmall")
+        b:SetDisabledFontObject("GameFontDisableSmall")
         b:SetPoint("BOTTOMLEFT", xOff, 8)
         b:SetText(text)
         b:SetScript("OnClick", onClick)
         return b
     end
     makeButton(L["BTN_STEPS"], 10, function() PP.UI.StepList:Toggle() end)
-    makeButton(L["BTN_MATS"], 106, function() PP.UI.MaterialList:Toggle() end)
-    makeButton(L["BTN_OPTIONS"], 202, function() PP.UI.Options:Open() end)
+    makeButton(L["BTN_MATS"], 81, function() PP.UI.MaterialList:Toggle() end)
+    makeButton(L["BTN_TRAINERS"], 152, function() PP.UI.TrainerList:Toggle() end)
+    makeButton(L["BTN_OPTIONS"], 223, function() PP.UI.Options:Open() end)
 
     MainWindow:ApplySettings()
     restorePosition()

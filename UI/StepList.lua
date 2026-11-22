@@ -86,8 +86,34 @@ local STATUS_LABEL = {
     mats      = "STATUS_MATS_MISSING",
 }
 
+-- Meilenstein-Zeile: Rang + Hinweis auf die Lehrer-Uebersicht
+local function milestoneTooltip(row, entry)
+    GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
+    local rankName = L["RANK_" .. (entry.milestone + 1)]
+    GameTooltip:AddLine(L["MILESTONE_LEARN"]:format(rankName), 1, 1, 1)
+    GameTooltip:AddLine(L["MILESTONE_TT_FIND"]:format(rankName), 0.4, 0.75, 1)
+    GameTooltip:Show()
+end
+
+-- Klick auf einen Meilenstein: Lehrer fuer genau diesen Rang zeigen
+local function onRowClick(row, button)
+    if button ~= "LeftButton" then return end
+    local entry = displayList[row.listIndex]
+    local snap = PP.snapshot
+    if not entry or not entry.milestone or not snap or not snap.profession then return end
+    if PP.UI.TrainerList then
+        PP.UI.TrainerList:Show({
+            profession = snap.profession.key, rank = entry.milestone + 1, onlyRank = true,
+        })
+    end
+end
+
 local function stepTooltip(row)
     local entry = displayList[row.listIndex]
+    if entry and entry.milestone and PP.db.profile.tooltips then
+        milestoneTooltip(row, entry)
+        return
+    end
     if not entry or not entry.stepIndex or not PP.db.profile.tooltips then return end
     local snap = PP.snapshot
     if not snap or not snap.profession then return end
@@ -155,7 +181,12 @@ local function updateRows()
             local rankName = L["RANK_" .. (entry.milestone + 1)]
             row.range:SetText("")
             row.name:SetText(L["MILESTONE_LEARN"]:format(rankName))
-            row.count:SetText("")
+            if snap.cap > entry.cap then
+                row.count:SetText("")
+            else
+                row.count:SetText(L["FIND_TRAINER"])
+                row.count:SetTextColor(0.4, 0.75, 1)
+            end
             if snap.cap > entry.cap then
                 row.name:SetTextColor(unpack(STATUS_COLOR.completed))
                 row.statusIcon:SetTexture(STATUS_ICON.completed)
@@ -241,6 +272,7 @@ local function createFrame()
         row:EnableMouse(true)
         row:SetScript("OnEnter", stepTooltip)
         row:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        row:SetScript("OnMouseUp", onRowClick)
 
         row.statusIcon = row:CreateTexture(nil, "ARTWORK")
         row.statusIcon:SetWidth(12)

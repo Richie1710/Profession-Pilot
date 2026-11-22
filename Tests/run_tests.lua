@@ -31,6 +31,10 @@ local MANIFEST = {
     "test_materialplan",
     "test_publicapi",
     "test_materialtracker",
+    "test_trainers",
+    "test_trainer_data",
+    "test_trainer_gen",
+    "test_waypoint",
     "test_load_all",
 }
 
@@ -72,6 +76,7 @@ local CODE = {
     "/../Core/Shopping.lua",
     "/../Core/Stats.lua",
     "/../Core/SmeltData.lua",
+    "/../Core/Trainers.lua",
     "/../Core/ProfessionRegistry.lua",
     "/../Professions/Engineering.lua",
     "/../Professions/Tailoring.lua",
@@ -81,6 +86,7 @@ local CODE = {
     "/../Professions/Blacksmithing.lua",
     "/../Professions/Enchanting.lua",
     "/../Professions/Inscription.lua",
+    "/../Professions/TrainerData.lua",
 }
 for _, rel in ipairs(CODE) do
     local ok, err = pcall(dofile, scriptDir .. rel)
