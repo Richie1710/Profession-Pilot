@@ -26,7 +26,7 @@ jobs:
       # (UI- und Event-Module haben keine headless Testabdeckung).
       - name: Syntax check (luac -p)
         run: |
-          find Core Modules UI Professions Locales Tests -name '*.lua' -print0 \
+          find Core Modules UI Professions Locales Tests Tools -name '*.lua' -print0 \
             | xargs -0 luac5.1 -p
           echo "Alle Lua-Dateien syntaktisch ok."
 

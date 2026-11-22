@@ -5,7 +5,7 @@
 ## Author: Daniel
 ## Version: 0.10.0
 ## SavedVariables: ProfessionPilotDB
-## OptionalDeps: Ace3
+## OptionalDeps: Ace3, TomTom, Carbonite
 ## X-Category: Professions
 ## X-AI-Assisted: Yes - developed with AI assistance (Claude by Anthropic) under human direction and review; see README.md
 
@@ -24,6 +24,7 @@ Core\Queue.lua
 Core\Shopping.lua
 Core\Stats.lua
 Core\SmeltData.lua
+Core\Trainers.lua
 
 Modules\SkillTracker.lua
 Modules\SkillStats.lua
@@ -36,6 +37,7 @@ Modules\AltAdvisor.lua
 Modules\CraftQueue.lua
 Modules\MerchantBuyer.lua
 Modules\PublicAPI.lua
+Modules\Waypoint.lua
 
 Professions\Engineering.lua
 Professions\Tailoring.lua
@@ -45,9 +47,11 @@ Professions\Alchemy.lua
 Professions\Blacksmithing.lua
 Professions\Enchanting.lua
 Professions\Inscription.lua
+Professions\TrainerData.lua
 
 UI\MainWindow.lua
 UI\StepList.lua
+UI\TrainerList.lua
 UI\MaterialList.lua
 UI\MerchantBar.lua
 UI\MinimapButton.lua

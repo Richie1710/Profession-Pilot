@@ -116,6 +116,17 @@ local function buildOptions()
                         name = L["OPT_DEBUG"], desc = L["OPT_DEBUG_DESC"],
                         get = get, set = setVisual,
                     },
+                    waypointTarget = {
+                        type = "select", order = 15,
+                        name = L["OPT_WAYPOINT"], desc = L["OPT_WAYPOINT_DESC"],
+                        values = {
+                            auto = L["OPT_WAYPOINT_AUTO"],
+                            tomtom = L["OPT_WAYPOINT_TOMTOM"],
+                            carbonite = L["OPT_WAYPOINT_CARBONITE"],
+                            chat = L["OPT_WAYPOINT_CHAT"],
+                        },
+                        get = get, set = setVisual,
+                    },
                 },
             },
         },

@@ -19,6 +19,8 @@ PP.defaults = {
         showRoster = true,            -- alt counts in shopping-list tooltips
         merchantBar = true,           -- buy bar below the vendor window
         ldbText = true,               -- progress text on DataBroker displays
+        waypointTarget = "auto",      -- trainer waypoints: auto | tomtom | carbonite | chat
+        trainerOnlyNext = false,      -- trainer list: only trainers for the next rank
         debug = false,
         window = {},                  -- [frameName] = { point, x, y }
     },

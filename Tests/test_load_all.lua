@@ -22,4 +22,4 @@ for line in toc:lines() do
 end
 toc:close()
 
-T.eq(count, 37, "all 37 addon Lua files listed in TOC")
+T.eq(count, 41, "all 41 addon Lua files listed in TOC")
