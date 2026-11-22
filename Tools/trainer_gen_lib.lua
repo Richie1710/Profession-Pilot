@@ -39,6 +39,19 @@ Lib.EXCLUDE = {
 -- Template-Fraktion widerspricht dem Standort (Niobe: Template 189 "Kreatur", steht in der Wildhammerfeste)
 Lib.SIDE_OVERRIDE = { [24868] = "A" }
 
+-- Unterzone je NPC-Entry, wenn die ADT-Kachel des Spawns nur die Wurzelzone meldet.
+-- Kirembri Silvermane steht zwischen Andiala und Lanloer auf der Sehertreppe (3898).
+Lib.AREA_OVERRIDE = { [33637] = 3898 }
+
+-- Unterzone ergaenzen: nur wenn keine bekannt ist und die Override-Area zur Zone gehoert
+function Lib.SubAreaOf(entry, file, sub, src)
+    if sub or not entry or not file then return sub end
+    local ov = Lib.AREA_OVERRIDE[entry]
+    local z = src.zones and src.zones[file]
+    if ov and z and Lib.RootOf(ov, src.areas or {}) == z.areaId then return ov end
+    return sub
+end
+
 -- Neutrale Templates, deren Freund-Fraktion Ruf verlangt
 Lib.REP = { [1743] = "aldor", [1744] = "scryers", [414] = "timbermaw" }
 
@@ -205,6 +218,7 @@ function Lib.Build(src)
                         t.entry, t.name, s.guid, s.map, s.phase or 1)
                 else
                     local file, sub = Lib.ZoneOf(s, src)
+                    sub = Lib.SubAreaOf(t.entry, file, sub, src)
                     if not file then
                         note("Spawn ohne Zone verworfen: %d %s guid %d", t.entry, t.name, s.guid)
                     elseif not doneMap[file] then

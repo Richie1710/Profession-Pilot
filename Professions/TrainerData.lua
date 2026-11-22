@@ -317,7 +317,7 @@ PP.TrainerData = {
             { id = 26997, name = "Alestos", nameDe = "Alestos", f = "A", ranks = { 1, 2, 3, 4, 5, 6 }, map = "BoreanTundra", x = 57.4, y = 72.3, area = 4032 },
             { id = 28701, name = "Timothy Jones", nameDe = "Jonas Timotheus", f = "N", ranks = { 1, 2, 3, 4, 5, 6 }, map = "Dalaran", x = 40.7, y = 35.4 },
             { id = 33590, name = "Oluros", nameDe = "Oluros", f = "N", ranks = { 1, 2, 3, 4, 5, 6 }, map = "IcecrownGlacier", x = 71.5, y = 20.9, area = 4658 },
-            { id = 33637, name = "Kirembri Silvermane", nameDe = "Kirembri Silberm\195\164hne", f = "N", ranks = { 1, 2, 3, 4, 5 }, map = "ShattrathCity", x = 58.4, y = 75.2, rep = "scryers" },
+            { id = 33637, name = "Kirembri Silvermane", nameDe = "Kirembri Silberm\195\164hne", f = "N", ranks = { 1, 2, 3, 4, 5 }, map = "ShattrathCity", x = 58.4, y = 75.2, area = 3898, rep = "scryers" },
             { id = 33680, name = "Nemiha", nameDe = "Nemiha", f = "N", ranks = { 1, 2, 3, 4, 5 }, map = "ShattrathCity", x = 36.2, y = 48.0, area = 3896, rep = "aldor" },
         },
         leatherworking = {

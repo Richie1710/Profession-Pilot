@@ -86,6 +86,19 @@ if spring then
     T.eq((Lib.ZoneOf(spring, src)), "Ironforge", "ZoneOf: Eisenschmiede aus Dun-Morogh-ADT")
 end
 
+-- SubAreaOf: Unterzonen-Ergaenzung fuer Spawns, deren ADT nur die Wurzelzone meldet
+local kirembri = spawnOf[33637]
+T.ok(kirembri ~= nil, "Rohdaten: Kirembri vorhanden")
+if kirembri then
+    local file, sub = Lib.ZoneOf(kirembri, src)
+    T.eq(file, "ShattrathCity", "ZoneOf: Kirembri in Shattrath")
+    T.eq(sub, nil, "ZoneOf: Kirembri-ADT meldet nur die Wurzelzone")
+    T.eq(Lib.SubAreaOf(33637, file, sub, src), 3898, "SubAreaOf: Kirembri auf der Sehertreppe")
+end
+T.eq(Lib.SubAreaOf(33637, "ShattrathCity", 1234, src), 1234, "SubAreaOf: bekannte Unterzone bleibt")
+T.eq(Lib.SubAreaOf(33637, "Hellfire", nil, src), nil, "SubAreaOf: Override aus fremder Zone ignoriert")
+T.eq(Lib.SubAreaOf(1, "ShattrathCity", nil, src), nil, "SubAreaOf: ohne Override keine Unterzone")
+
 local sinbei = spawnOf[33634]
 if sinbei then
     local file, sub = Lib.ZoneOf(sinbei, src)

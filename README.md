@@ -500,6 +500,10 @@ Wegpunkt-Anbieter mit Stubs).
   Basismaterial gezählt, nicht über ihre Cooldown-Rezepte aufgelöst.
 - Nordend-Rezepte tragen `learnAtSkill` = Schrittbeginn (AtlasLoot führt für
   WotLK-Lehrerrezepte keine Skill-Werte); das ist bewusst konservativ.
+- Lehrer-Unterzonen stammen aus der ADT-Kachel des Spawns. Meldet sie nur die
+  Wurzelzone, fehlt die Unterzone in der Lehrerliste (z. B. Kradu, Zula in Shattrath,
+  Dumphry auf der Höllenfeuerhalbinsel); belegte Fälle ergänzt `AREA_OVERRIDE` in
+  `Tools/trainer_gen_lib.lua` (Kirembri → Sehertreppe).
 - **Verzauberkunst** nutzt in 3.3.5a die alte Craft-API: Rezept-Scan und
   Craft-Button funktionieren, aber pro Klick wird genau 1× gewirkt (DoCraft
   kennt keine Wiederholungszahl; Verzauberungen brauchen ohnehin ein Ziel).
