@@ -31,6 +31,7 @@ fehlen oder du deinen Berufslehrer besuchen musst.
 | Hauptfenster öffnen/schließen | `/pp` oder Minimap-Button (Linksklick) |
 | Schrittübersicht 1–450 | `/pp steps` oder Button „Schritte" |
 | Einkaufsliste | `/pp mats` oder Button „Material" |
+| Lehrer-Übersicht | `/pp lehrer` (oder `/pp trainer`) oder Button „Lehrer" |
 | Optionen | `/pp config`, Rechtsklick auf Minimap-Button |
 | Beruf wechseln (bei mehreren) | `/pp prof` — oder einfach das jeweilige Berufsfenster öffnen |
 | Skills/Taschen neu einlesen | `/pp scan` |
@@ -57,13 +58,42 @@ werden.
   Materialien, Anzahl in Klammern). Es wird nie ohne Klick gecraftet.
 - Materialzeilen mit `vorhanden / benötigt` (grün/rot)
 - Hinweiszeile: Lehrer-Warnung, Werkzeug-/Aufhebe-Hinweise, Spezialisierung
+- Knöpfe unten: Schritte, Material, Lehrer, Optionen
 
 ### Schrittübersicht
 
 Alle 40 Schritte plus Lehrer-Meilensteine (Geselle → Großmeister) mit Status:
 grau ✓ abgeschlossen · gold aktuell · weiß offen · rot Ausbildung fehlt ·
 orange Rezept fehlt · gelb Materialien fehlen. Tooltip je Schritt zeigt
-Materialien mit Beständen, Quelle, Notizen und Alternativen.
+Materialien mit Beständen, Quelle, Notizen und Alternativen. Noch offene
+Meilensteine tragen rechts den Link **„Lehrer finden"**: Ein Klick öffnet die
+Lehrer-Übersicht, gefiltert auf genau diesen Rang.
+
+### Lehrer-Übersicht
+
+Alle Berufslehrer des gewählten Berufs (mit `<`/`>` durchschalten; Standard ist
+der aktive Beruf), nach Ort gruppiert: eigene Hauptstädte, Shattrath, Dalaran,
+danach die übrigen Zonen (nach Kontinent und Name), Spezialisierungslehrer
+(z. B. Goblin-/Gnomingenieur, Schmiede-Spezialisierungen) zuletzt. Angezeigt
+werden die Lehrer der eigenen Fraktion plus neutrale. Je Zeile: Name,
+Unterzone, höchster lehrbarer Rang (Lehrling 75 … Großmeister 450) und
+Fraktionskürzel (A blau, H rot, N grau).
+
+- **Hervorhebung:** Lehrer, die den nächsten benötigten Rang lehren, stehen
+  grün mit `>` oben in ihrer Gruppe. Lehrer, die nur Großmeister lehren (z. B.
+  Alchemie/Verzauberkunst in Dalaran), werden auch nur dafür markiert.
+- **Filter:** „Nur Lehrer für <Rang>" blendet alle anderen aus (wird
+  gespeichert); aus der Schrittübersicht kommend ist er für den Meilenstein-Rang
+  vorausgewählt.
+- **Tooltip:** Ort mit Koordinaten, alle gelehrten Ränge, Mindest-Charakterstufe
+  für den Rang (rot, wenn zu niedrig) und Ruf-Hinweis (Aldor, Seher,
+  Holzschlundfeste).
+- **Klick:** setzt einen Wegpunkt per **TomTom**, sonst **Carbonite**, sonst
+  stehen die Koordinaten im Chat. **Shift-Klick** schreibt immer die Koordinaten
+  in den Chat. Es gibt nur einen eigenen Wegpunkt; ein neuer Klick ersetzt ihn.
+  Die Reihenfolge lässt sich in den Optionen festlegen („Wegpunkte zu Lehrern":
+  Automatisch, TomTom zuerst, Carbonite zuerst, nur Chat). TomTom und Carbonite
+  sind optional.
 
 ### Einkaufsliste
 
@@ -163,6 +193,43 @@ Glück und Serverraten ab. Im Debug-Modus vergleicht das Addon bei geöffnetem
 Berufsfenster die Datenreagenzien mit den echten Client-Werten und meldet
 Abweichungen.
 
+### Lehrerdaten
+
+`Professions/TrainerData.lua` ist **generiert**, nicht von Hand gepflegt. Quelle
+sind die TrinityCore-3.3.5-Welt-DB (Lehrer, gelehrte Rang-Zauber mit
+Mindeststufe, Spawns, deutsche NPC-Namen aus `creature_template_locale`) und die
+Client-Dateien (WorldMapArea/DungeonMap/AreaTable/FactionTemplate.dbc,
+ADT-Gebietskennung unter jedem Spawn). Kartenprozent:
+`x = (left − weltY) / (left − right)`, `y = (top − weltX) / (top − bottom)`.
+
+Stichproben (Soll: Wowhead WotLK, Ist: Generator):
+
+| Lehrer | Soll | Ist |
+|---|---|---|
+| Lilyssia Nachtbrise, Alchemie Sturmwind | 55.6, 85.8 | 55.7, 86.1 |
+| Sprungspindel Zischelgang, Ingenieur Eisenschmiede | 68.2–68.8, 43.4–45.2 | 68.5, 43.5 |
+| Magar, Schneiderei Orgrimmar | 63.4–63.6, 50.0 | 63.6, 49.9 |
+| Timofey Oshenko, Ingenieur-Großmeister Dalaran | 38.8, 25.4–27.2 | 38.4, 25.9 |
+
+**Neu erzeugen** in zwei Stufen:
+
+1. *Rohdaten* (nur bei Datenupdates; braucht DB-Zugang, Node und den Client):
+   ```
+   mysql -N -B world < Tools/trainers/q_trainers.sql > trainers.tsv
+   mysql -N -B world < Tools/trainers/q_spawns.sql   > spawns.tsv
+   node Tools/trainers/extract.mjs --wow "<WoW-Ordner>" --q1 trainers.tsv --q2 spawns.tsv
+   ```
+   (bei Docker z. B. `docker exec -i <container> mysql -u<user> -p world -N -B < …`;
+   Zugangsdaten gehören nicht ins Repo). Ergebnis: `Tools/data/trainer_source.lua`.
+2. *Addon-Daten* (reines Lua 5.1, ohne DB/Client):
+   ```
+   lua5.1 Tools/gen_trainers.lua
+   ```
+   Meldet auf stderr ausgeschlossene Platzhalter (8 unsichtbare NPCs auf der
+   Sehertreppe) und verworfene Spawns (Instanzen, andere Phasen).
+   `test_trainer_gen` schlägt fehl, wenn `TrainerData.lua` nicht exakt der
+   Generatorausgabe entspricht.
+
 ## Architektur
 
 ```
@@ -177,6 +244,7 @@ ProfessionPilot/
 │   ├── Calc.lua               PURE Berechnungslogik + Link-Parser (headless testbar)
 │   ├── Shopping.lua           PURE Einkaufsplanung für den Händlerkauf
 │   ├── MaterialPlan.lua       PURE Material-API: flache Blattliste + String (siehe „Öffentliche API“)
+│   ├── Trainers.lua           PURE Lehrer-Übersicht: Filter, Gruppierung, Hervorhebung
 │   └── ProfessionRegistry.lua Registrierung + Validierung der Berufsdaten
 ├── Modules/
 │   ├── SkillTracker.lua       Skill/Cap via GetSkillLineInfo (lokalisierungsfrei)
@@ -185,6 +253,7 @@ ProfessionPilot/
 │   ├── PriceSource.lua        Gemerkte Händlerpreise + optional Auctioneer/Auctionator
 │   ├── MerchantBuyer.lua      Händlerkauf: Sortiment lesen, Preise merken, kaufen
 │   ├── PublicAPI.lua          PP:GetMaterialPlan / GetMaterialPlanString (dünner WoW-Teil)
+│   ├── Waypoint.lua           Wegpunkt zum Lehrer: TomTom → Carbonite → Chat
 │   └── Crafter.lua            Craft-Button-Logik (DoTradeSkill)
 ├── Professions/               Reine Daten, je 1–450, IDs AtlasLoot-verifiziert
 │   ├── Engineering.lua        40 Schritte
@@ -194,9 +263,11 @@ ProfessionPilot/
 │   ├── Alchemy.lua            30 Schritte
 │   ├── Blacksmithing.lua      44 Schritte
 │   ├── Enchanting.lua         44 Schritte (Craft-API, s.u.)
-│   └── Inscription.lua        38 Schritte
-├── UI/                        MainWindow, StepList, MaterialList, MerchantBar, Minimap, Options
+│   ├── Inscription.lua        38 Schritte
+│   └── TrainerData.lua        248 Berufslehrer (generiert, siehe „Lehrerdaten“)
+├── UI/                        MainWindow, StepList, TrainerList, MaterialList, MerchantBar, Minimap, Options
 ├── Tests/                     Headless-Tests (Lua 5.1), nicht im TOC
+├── Tools/                     Packen, Versionieren, Lehrerdaten-Generator (nicht im Release-Zip)
 └── docs/superpowers/          Design-Spec und Implementierungsplan
 ```
 
@@ -374,14 +445,16 @@ wird per `/pp prof` oder automatisch beim Öffnen des jeweiligen Berufsfensters.
 Headless-Suite (kein WoW nötig), benötigt einen Lua-5.1-Interpreter:
 
 ```
-lua5.1 Tests/run_tests.lua           # komplette Suite (228 Assertions)
+lua5.1 Tests/run_tests.lua           # komplette Suite (1964 Assertions)
 lua5.1 Tests/run_tests.lua test_calc # einzelne Datei
 ```
 
 Abgedeckt: Statuslogik und Grenzfälle (1/30/50/51/137/200/449/450), Datenintegrität
 (40 Schritte, keine Lücken 1–449, verifizierte Anker-IDs, Materialsummen),
 Aggregation mit Kettenauflösung (Unter-/Überproduktion, numMade-Überschuss,
-Bank-Toggle), Link-Parser.
+Bank-Toggle), Link-Parser, Lehrer-Übersicht (Generatorlogik samt
+Regenerations-Check, Filter/Gruppierung/Hervorhebung, Datenintegrität,
+Wegpunkt-Anbieter mit Stubs).
 
 ### Manuelle Testcheckliste (3.3.5a-Client)
 
@@ -402,6 +475,12 @@ Bank-Toggle), Link-Parser.
 - [ ] Linksklick kauft die Abschnittsmenge, Rechtsklick die Gesamtmenge; Chat-Zusammenfassung; Knopf bis zur Ankunft gesperrt
 - [ ] Händler ohne passende Ware: keine Leiste; Option „Kaufleiste am Händler" aus: keine Leiste
 - [ ] Nach dem Händlerbesuch: „(Händler)"-Markierung und Stückpreis in der Einkaufsliste, Kosten auch ohne AH-Addon
+- [ ] Lehrer-Übersicht mit Allianz- und Horde-Charakter: nur eigene Fraktion + neutrale, eigene Hauptstädte oben, Shattrath/Dalaran danach
+- [ ] Hervorhebung bei Cap 75 (Geselle), 300 (Meister: Shattrath/Scherbenwelt) und 375 (Großmeister: Dalaran/Nordend); GM-only-Alchemist nur bei Rang 6 markiert
+- [ ] Klick mit nur TomTom, nur Carbonite, beiden und keinem der beiden (Koordinaten im Chat); Shift-Klick immer Chat
+- [ ] Klick bei geöffneter Weltkarte ohne TomTom: Karte springt nicht, Hinweis bzw. Carbonite über den Zonennamen
+- [ ] Schrittübersicht: „Lehrer finden" an offenem Meilenstein öffnet die gefilterte Übersicht
+- [ ] Deutscher Client: deutsche Lehrer- und Zonennamen
 
 ## Bekannte Einschränkungen
 
@@ -441,6 +520,15 @@ Bank-Toggle), Link-Parser.
   gezählt sind; Wege, die `BuyMerchantItem` umgehen (Ziehen in die Tasche,
   ElvUI-Alt-Klick-Stapelkauf), erkennt er erst nach der Taschenzählung — direkt
   danach also nicht sofort auf „Fehlendes kaufen" klicken.
+- **Lehrer-Übersicht:** Positionen sind der Stand der TrinityCore-Welt-DB; ein
+  Server mit eigenen Spawns kann abweichen. Keine Sortierung nach Entfernung
+  (optional im Issue, bewusst weggelassen). Ruf-Sperren (Aldor, Seher,
+  Holzschlundfeste) stehen nur im Tooltip, gefiltert wird danach nicht. In 3.3.5
+  gibt es keine Rang-Quests; angezeigt wird nur die Mindeststufe. Lehrer
+  außerhalb der Kontinente fehlen (Annora in Uldaman). Koordinaten in Dalaran
+  beziehen sich auf die Stadtebene (Etage 1), nicht auf die Schattenseite. Die
+  Carbonite-Anbindung nutzt die Kurz-API von Carbonite 3.34 (Build 249); andere
+  Builds fallen auf den Chat zurück.
 
 ## Transparenzhinweis (KI-Unterstützung)
 

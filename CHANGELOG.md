@@ -25,6 +25,27 @@ der Git-Tag `vX.Y.Z` muss dazu passen.
   (`not_ready`, `unknown_profession`, `no_profession`, `bad_args`) statt `nil`.
   `countsReady` zeigt, ob die Taschenzahlen nach dem Ladescreen gelesen sind.
   Beschreibung im README unter „Öffentliche API“.
+- Lehrer-Übersicht (Issue #3): neuer Knopf „Lehrer" im Hauptfenster bzw.
+  `/pp lehrer` (`/pp trainer`). Zeigt alle Berufslehrer des gewählten Berufs
+  nach Ort gruppiert (eigene Hauptstädte, Shattrath, Dalaran, übrige Zonen,
+  Spezialisierungslehrer), gefiltert auf die eigene Fraktion plus neutrale, mit
+  höchstem lehrbaren Rang je Lehrer. Lehrer für den nächsten benötigten Rang
+  sind hervorgehoben; Tooltip mit Ort, Koordinaten, Rängen, Mindeststufe und
+  Ruf-Hinweis (Aldor, Seher, Holzschlundfeste).
+- Klick auf einen Lehrer setzt einen Wegpunkt per TomTom, sonst Carbonite,
+  sonst stehen die Koordinaten im Chat (Shift-Klick: immer Chat). Neue Option
+  „Wegpunkte zu Lehrern" legt die Reihenfolge fest. TomTom und Carbonite sind
+  nur optionale Abhängigkeiten (`OptionalDeps`).
+- Schrittübersicht: „Lehrer finden" an offenen Rang-Meilensteinen öffnet die
+  Lehrer-Übersicht, gefiltert auf diesen Rang.
+- Lehrerdaten (248 Lehrer, deutsche und englische Namen) werden per Generator
+  erzeugt: `Tools/trainers/` exportiert Rohdaten aus Trinity-DB und Client,
+  `lua5.1 Tools/gen_trainers.lua` schreibt `Professions/TrainerData.lua`. Tests
+  prüfen Generatorlogik, Filter/Gruppierung, Datenintegrität und die
+  Wegpunkt-Anbieter.
+
+### Geändert
+- Hauptfenster: vier schmalere Knöpfe (Schritte, Material, Lehrer, Optionen).
 
 ## [0.10.0] - 2026-09-11
 
